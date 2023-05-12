@@ -450,18 +450,16 @@ class ModelFitPipeline(AbstractPipeline):
 
     if not isinstance(model_builder, model_lib.AbstractModelBuilder):
       raise ValueError(
-          "The argument `model_builder` needs to be of type "
-          "tensorflow_ranking.keras.model.AbstractModelBuilder, not {}.".format(
-              type(model_builder)))
+          f"The argument `model_builder` needs to be of type tensorflow_ranking.keras.model.AbstractModelBuilder, not {type(model_builder)}."
+      )
 
     if dataset_builder is None:
       raise ValueError("The `dataset_builder` cannot be empty!")
 
     if not isinstance(dataset_builder, AbstractDatasetBuilder):
       raise ValueError(
-          "The argument `dataset_builder` needs to be of type "
-          "tensorflow_ranking.keras.pipeline.DatasetBuilder, not {}.".format(
-              type(dataset_builder)))
+          f"The argument `dataset_builder` needs to be of type tensorflow_ranking.keras.pipeline.DatasetBuilder, not {type(dataset_builder)}."
+      )
 
   def build_callbacks(self) -> List[tf.keras.callbacks.Callback]:
     """Sets up Callbacks.
@@ -492,16 +490,17 @@ class ModelFitPipeline(AbstractPipeline):
       # default to be min of loss metric.
       best_export_metric = self._hparams.best_exporter_metric
       if best_export_metric != "loss":
-        best_export_metric = "metric/" + best_export_metric
+        best_export_metric = f"metric/{best_export_metric}"
       callbacks.append(
           tf.keras.callbacks.ModelCheckpoint(
               os.path.join(self._hparams.model_dir,
                            "best_checkpoint/ckpt-{epoch:04d}"),
-              monitor="val_" + best_export_metric,
+              monitor=f"val_{best_export_metric}",
               mode=("max" if self._hparams.best_exporter_metric_higher_better
                     else "min"),
               save_weights_only=True,
-              save_best_only=True))
+              save_best_only=True,
+          ))
 
     if self._hparams.automatic_reduce_lr:
       callbacks.append(
@@ -619,9 +618,8 @@ class ModelFitPipeline(AbstractPipeline):
           export_to=os.path.join(model_output_dir, "export/latest_model"))
 
       if self._hparams.export_best_model:
-        best_checkpoint = tf.train.latest_checkpoint(
-            os.path.join(self._hparams.model_dir, "best_checkpoint"))
-        if best_checkpoint:
+        if best_checkpoint := tf.train.latest_checkpoint(
+            os.path.join(self._hparams.model_dir, "best_checkpoint")):
           self.export_saved_model(
               model,
               export_to=os.path.join(model_output_dir,
@@ -633,7 +631,7 @@ class ModelFitPipeline(AbstractPipeline):
 
 def _get_metric(prefix, key, topn=None):
   """Helper function to construct a metric."""
-  name = "{}{}{}".format(prefix, key, "_%s" % topn if topn else "")
+  name = f'{prefix}{key}{f"_{topn}" if topn else ""}'
   return metrics.get(key, name=name, topn=topn)
 
 
@@ -695,20 +693,17 @@ class SimplePipeline(ModelFitPipeline):
 
   def build_metrics(self) -> List[tf.keras.metrics.Metric]:
     """See `AbstractPipeline`."""
-    eval_metrics = [
+    return [
         _get_metric("metric/", metrics.RankingMetricKey.NDCG, topn=topn)
         for topn in [1, 5, 10, None]
     ]
-    return eval_metrics
 
   def build_weighted_metrics(self) -> List[tf.keras.metrics.Metric]:
     """See `AbstractPipeline`."""
-    eval_metrics = [
-        _get_metric(
-            "weighted_metric/", metrics.RankingMetricKey.NDCG, topn=topn)
+    return [
+        _get_metric("weighted_metric/", metrics.RankingMetricKey.NDCG, topn=topn)
         for topn in [1, 5, 10, None]
     ]
-    return eval_metrics
 
 
 class MultiTaskPipeline(ModelFitPipeline):
@@ -772,10 +767,10 @@ class MultiTaskPipeline(ModelFitPipeline):
 
   def build_loss(self) -> Dict[str, tf.keras.losses.Loss]:
     """See `AbstractPipeline`."""
-    reduction = self._hparams.loss_reduction
     if isinstance(self._hparams.loss, str):
       raise TypeError("In the multi-task pipeline, losses are expected to be "
                       "specified in a dict instead of a str.")
+    reduction = self._hparams.loss_reduction
     return {
         task_name: losses.get(loss=loss_name, reduction=reduction)
         for task_name, loss_name in self._hparams.loss.items()
@@ -1081,11 +1076,10 @@ class SimpleDatasetBuilder(BaseDatasetBuilder):
   ) -> Union[Tuple[Dict[str, tf.Tensor], tf.Tensor],  #
              Tuple[Dict[str, tf.Tensor], tf.Tensor, tf.Tensor]]:
     """See `BaseDatasetBuilder`."""
-    to_pop = set()
     feature_name, _ = self._label_spec
     label = _convert_label(features[feature_name],
                            self._hparams.convert_labels_to_binary)
-    to_pop.add(feature_name)
+    to_pop = {feature_name}
     if self._sample_weight_spec:
       feature_name, _ = self._sample_weight_spec
       weight = tf.cast(tf.squeeze(features[feature_name], 2), tf.float32)
@@ -1096,10 +1090,7 @@ class SimpleDatasetBuilder(BaseDatasetBuilder):
     for name in to_pop:
       features.pop(name)
 
-    if weight is None:
-      return features, label
-    else:
-      return features, label, weight
+    return (features, label) if weight is None else (features, label, weight)
 
 
 class MultiLabelDatasetBuilder(BaseDatasetBuilder):
@@ -1200,7 +1191,4 @@ class MultiLabelDatasetBuilder(BaseDatasetBuilder):
     for name in to_pop:
       features.pop(name)
 
-    if weight is None:
-      return features, label
-    else:
-      return features, label, weight
+    return (features, label) if weight is None else (features, label, weight)

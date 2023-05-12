@@ -44,8 +44,7 @@ def serialize_feature_columns(feature_columns):
   sorted_names, sorted_feature_columns = zip(*sorted_name_to_feature_columns)
   sorted_configs = fc.serialize_feature_columns(
       sorted_feature_columns)
-  feature_column_configs = dict(zip(sorted_names, sorted_configs))
-  return feature_column_configs
+  return dict(zip(sorted_names, sorted_configs))
 
 
 def deserialize_feature_columns(feature_column_configs, custom_objects=None):
@@ -70,8 +69,7 @@ def deserialize_feature_columns(feature_column_configs, custom_objects=None):
   sorted_feature_columns = fc.deserialize_feature_columns(
       sorted_configs, custom_objects=custom_objects)
 
-  feature_columns = dict(zip(sorted_names, sorted_feature_columns))
-  return feature_columns
+  return dict(zip(sorted_names, sorted_feature_columns))
 
 
 def create_keras_inputs(context_feature_columns,
@@ -164,8 +162,7 @@ class GenerateMask(tf.keras.layers.Layer):
     example_feature = inputs[next(six.iterkeys(self._example_feature_columns))]
     list_size = tf.shape(example_feature)[1]
     sizes = inputs[self._size_feature_name]
-    mask = tf.sequence_mask(sizes, maxlen=list_size)
-    return mask
+    return tf.sequence_mask(sizes, maxlen=list_size)
 
   def get_config(self):
     config = super(GenerateMask, self).get_config()
@@ -269,13 +266,11 @@ class EncodeListwiseFeatures(tf.keras.layers.Layer):
       example_name = next(six.iterkeys(example_specs))
       batch_size = tf.shape(input=features[example_name])[0]
       list_size = tf.shape(input=features[example_name])[1]
-      reshaped_example_features = {}
-      for name in example_specs:
-        if name not in features:
-          continue
-        reshaped_example_features[name] = utils.reshape_first_ndims(
-            features[name], 2, [batch_size * list_size])
-
+      reshaped_example_features = {
+          name: utils.reshape_first_ndims(features[name], 2,
+                                          [batch_size * list_size])
+          for name in example_specs if name in features
+      }
       example_cols_to_tensors = {}
       self._example_dense_layer(
           reshaped_example_features,

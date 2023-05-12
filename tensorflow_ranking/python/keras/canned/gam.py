@@ -179,13 +179,12 @@ class GAMRankingNetwork(network_lib.UnivariateRankingNetwork):
     sub_logits_list = []
     with tf.name_scope('example_feature_towers'):
       for name, input_tensor in zip(example_feature_names, example_input):
-        with tf.name_scope('{}_tower'.format(name)):
+        with tf.name_scope(f'{name}_tower'):
           cur = input_tensor
           layers = self._per_example_feature_layers[name]
           for layer in layers:
             cur = layer(cur, training=training)
-          sub_logits = tf.identity(
-              cur, name='{}_{}'.format(name, _SUBSCORE_POSTFIX))
+          sub_logits = tf.identity(cur, name=f'{name}_{_SUBSCORE_POSTFIX}')
           sub_logits_list.append(sub_logits)
 
     sub_weights_list = []
@@ -193,30 +192,23 @@ class GAMRankingNetwork(network_lib.UnivariateRankingNetwork):
       # Construct a tower for each context feature.
       with tf.name_scope('context_feature_towers'):
         for name, input_tensor in zip(context_feature_names, context_input):
-          with tf.name_scope('{}_tower'.format(name)):
+          with tf.name_scope(f'{name}_tower'):
             cur = input_tensor
             layers = self._per_context_feature_layers[name]
             for layer in layers:
               cur = layer(cur, training=training)
             cur = tf.keras.layers.Softmax()(cur)
-            sub_weights = tf.identity(
-                cur, name='{}_{}'.format(name, _SUBWEIGHT_POSTFIX))
+            sub_weights = tf.identity(cur, name=f'{name}_{_SUBWEIGHT_POSTFIX}')
             sub_weights_list.append(sub_weights)
 
-    # Construct an additive model from the outputs of all example feature towers
-    # weighted by outputs of all context feature towers.
-    # Note that these layers do not have any trainable variables, hence we
-    # are not defining them in init but defining them here, similar to Flatten.
-    if sub_weights_list:
-      sub_logits = tf.keras.layers.Concatenate(axis=-1)(sub_logits_list)
-      sub_weights = (
-          tf.keras.layers.Add()(sub_weights_list)
-          if len(sub_weights_list) > 1 else sub_weights_list[0])
-      logits = tf.keras.backend.sum(sub_logits * sub_weights, axis=-1)
-    else:
-      logits = tf.keras.layers.Add()(
-          sub_logits_list) if len(sub_logits_list) > 1 else sub_logits_list[0]
-    return logits
+    if not sub_weights_list:
+      return (tf.keras.layers.Add()(sub_logits_list)
+              if len(sub_logits_list) > 1 else sub_logits_list[0])
+    sub_logits = tf.keras.layers.Concatenate(axis=-1)(sub_logits_list)
+    sub_weights = (
+        tf.keras.layers.Add()(sub_weights_list)
+        if len(sub_weights_list) > 1 else sub_weights_list[0])
+    return tf.keras.backend.sum(sub_logits * sub_weights, axis=-1)
 
   def get_config(self):
     config = super(GAMRankingNetwork, self).get_config()

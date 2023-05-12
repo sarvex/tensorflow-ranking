@@ -179,13 +179,21 @@ class RankingPipeline(object):
 
   def _required_hparam_keys(self):
     """Returns a list of keys for the required hparams for RankingPipeline."""
-    required_hparam_keys = [
-        "train_input_pattern", "eval_input_pattern", "train_batch_size",
-        "eval_batch_size", "checkpoint_secs", "num_checkpoints",
-        "num_train_steps", "num_eval_steps", "loss", "list_size",
-        "convert_labels_to_binary", "model_dir", "listwise_inference"
+    return [
+        "train_input_pattern",
+        "eval_input_pattern",
+        "train_batch_size",
+        "eval_batch_size",
+        "checkpoint_secs",
+        "num_checkpoints",
+        "num_train_steps",
+        "num_eval_steps",
+        "loss",
+        "list_size",
+        "convert_labels_to_binary",
+        "model_dir",
+        "listwise_inference",
     ]
-    return required_hparam_keys
 
   def _validate_parameters(self, estimator, hparams):
     """Validates the passed-in estimator and hparams.
@@ -211,7 +219,7 @@ class RankingPipeline(object):
 
     for required_key in self._required_hparam_keys():
       if required_key not in hparams:
-        raise ValueError("Required key is missing: '{}'".format(required_key))
+        raise ValueError(f"Required key is missing: '{required_key}'")
 
   def _features_and_labels(self, features):
     """Extracts labels from features."""
@@ -326,13 +334,12 @@ class RankingPipeline(object):
           context_feature_spec=context_feature_spec,
           example_feature_spec=example_feature_spec,
           size_feature_name=self._size_feature_name)
-    else:
-      # Exports accept `tf.Example` format during serving.
-      feature_spec = {}
-      feature_spec.update(example_feature_spec)
-      feature_spec.update(context_feature_spec)
-      return tf.estimator.export.build_parsing_serving_input_receiver_fn(
-          feature_spec)
+    # Exports accept `tf.Example` format during serving.
+    feature_spec = {}
+    feature_spec |= example_feature_spec
+    feature_spec.update(context_feature_spec)
+    return tf.estimator.export.build_parsing_serving_input_receiver_fn(
+        feature_spec)
 
   def _export_strategies(self, event_file_pattern, assets_extra=None):
     """Defines the export strategies.
@@ -367,8 +374,8 @@ class RankingPipeline(object):
       """A `compare_fn` to determine the best evaluation result."""
       if self._best_exporter_metric not in current_eval_result:
         raise ValueError(
-            "Metric `%s` does not exist! Please use any of the following: `%s`."
-            % (self._best_exporter_metric, current_eval_result.keys()))
+            f"Metric `{self._best_exporter_metric}` does not exist! Please use any of the following: `{current_eval_result.keys()}`."
+        )
 
       is_current_the_best = (
           self._best_exporter_metric_higher_better == (

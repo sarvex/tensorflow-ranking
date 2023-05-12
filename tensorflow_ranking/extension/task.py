@@ -96,8 +96,9 @@ class RankingDataLoader(data_loader.DataLoader):
     self._dataset_fn = dataset_fn
     if not self._dataset_fn:
       if params.dataset_fn not in DATASET_FN_MAP:
-        raise ValueError('Wrong dataset_fn: {}! Expected: {}'.format(
-            params.dataset_fn, list(DATASET_FN_MAP.keys())))
+        raise ValueError(
+            f'Wrong dataset_fn: {params.dataset_fn}! Expected: {list(DATASET_FN_MAP.keys())}'
+        )
       self._dataset_fn = DATASET_FN_MAP[params.dataset_fn]
 
   def _decode(self, record: tf.Tensor) -> Dict[str, tf.Tensor]:
@@ -128,8 +129,7 @@ class RankingDataLoader(data_loader.DataLoader):
 
     # ELWC only supports tf.int64, but the TPU only supports tf.int32.
     # So cast all int64 to int32.
-    for name in output_features:
-      t = output_features[name]
+    for name, t in output_features.items():
       if t.dtype == tf.int64:
         t = tf.cast(t, tf.int32)
       output_features[name] = t
@@ -224,12 +224,12 @@ class RankingTask(base_task.Task):
     metrics = [
         tfr_metrics.MeanAveragePrecisionMetric(name='MAP')
     ]
-    for topn in [1, 5, 10]:
-      metrics.append(
-          tfr_metrics.NDCGMetric(name='NDCG@{}'.format(topn), topn=topn))
-    for topn in [1, 5, 10]:
-      metrics.append(
-          tfr_metrics.MRRMetric(name='MRR@{}'.format(topn), topn=topn))
+    metrics.extend(
+        tfr_metrics.NDCGMetric(name=f'NDCG@{topn}', topn=topn)
+        for topn in [1, 5, 10])
+    metrics.extend(
+        tfr_metrics.MRRMetric(name=f'MRR@{topn}', topn=topn)
+        for topn in [1, 5, 10])
     return metrics
 
   def process_metrics(self, metrics, labels, model_outputs):

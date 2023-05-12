@@ -184,10 +184,7 @@ def sorted_ranks(scores, shuffle_ties=True, seed=None):
     # position 0.
     sorted_positions = sort_by_scores(
         scores, [positions], shuffle_ties=shuffle_ties, seed=seed)[0]
-    # The indices of sorting sorted_positions will be [[2, 0, 1]] and ranks are
-    # 1-based and thus are [[3, 1, 2]].
-    ranks = tf.argsort(sorted_positions) + 1
-    return ranks
+    return tf.argsort(sorted_positions) + 1
 
 
 def shuffle_valid_indices(is_valid, seed=None):
@@ -241,9 +238,8 @@ def reshape_first_ndims(tensor, first_ndims, new_shape):
   Returns:
     A reshaped `Tensor`.
   """
-  assert tensor.get_shape().ndims is None or tensor.get_shape(
-  ).ndims >= first_ndims, (
-      'Tensor shape is less than {} dims.'.format(first_ndims))
+  assert (tensor.get_shape().ndims is None or tensor.get_shape().ndims >=
+          first_ndims), f'Tensor shape is less than {first_ndims} dims.'
   new_shape = tf.concat([new_shape, tf.shape(input=tensor)[first_ndims:]], 0)
   if isinstance(tensor, tf.SparseTensor):
     return tf.sparse.reshape(tensor, new_shape)
@@ -257,7 +253,7 @@ def reshape_to_2d(tensor):
     rank = tensor.shape.rank if tensor.shape is not None else None
     if rank is not None and rank != 2:
       if rank >= 3:
-        tensor = tf.reshape(tensor, tf.shape(input=tensor)[0:2])
+        tensor = tf.reshape(tensor, tf.shape(input=tensor)[:2])
       else:
         while tensor.shape.rank < 2:
           tensor = tf.expand_dims(tensor, -1)
@@ -377,7 +373,7 @@ def de_noise(counts, noise, ratio=0.9):
     not positive.
   """
   if not 0 < ratio < 1:
-    raise ValueError('ratio should be in (0, 1), but get {}'.format(ratio))
+    raise ValueError(f'ratio should be in (0, 1), but get {ratio}')
   odds = (1 - ratio) / ratio
 
   counts = tf.cast(counts, dtype=tf.float32)

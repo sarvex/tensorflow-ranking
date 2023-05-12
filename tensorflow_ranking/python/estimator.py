@@ -66,14 +66,14 @@ def _validate_hparams(hparams_in_dict, required_keys, allowed_keys=None):
   allowed_keys = allowed_keys or []
   for required_key in required_keys:
     if required_key not in hparams_in_dict:
-      raise ValueError("Required key is missing: '{}'".format(required_key))
+      raise ValueError(f"Required key is missing: '{required_key}'")
   for allowed_key in allowed_keys:
     if allowed_key in hparams_in_dict:
-      tf.compat.v1.logging.info("Allowed key is set: {}={}".format(
-          allowed_key, hparams_in_dict.get(allowed_key)))
-    else:
       tf.compat.v1.logging.info(
-          "Allowed key is not set: {}".format(allowed_key))
+          f"Allowed key is set: {allowed_key}={hparams_in_dict.get(allowed_key)}"
+      )
+    else:
+      tf.compat.v1.logging.info(f"Allowed key is not set: {allowed_key}")
 
 
 def _validate_function_args(function, required_args):
@@ -100,7 +100,7 @@ def _get_metric_pair(key, weight=None, topn=None):
       "metric/",
       "weighted_" if weight else "",
       key,
-      "_%s" % topn if topn else "",
+      f"_{topn}" if topn else "",
   ])
   return name, metrics.make_ranking_metric_fn(
       key, weights_feature_name=weight, topn=topn)
@@ -296,10 +296,10 @@ class EstimatorBuilder(object):
   def _eval_metric_fns(self):
     """Returns a dict from name to metric functions."""
     metric_fns = {}
-    metric_fns.update({
+    metric_fns |= {
         _get_metric_pair(metrics.RankingMetricKey.NDCG, topn=topn)
         for topn in [5, 10, None]
-    })
+    }
     metric_fns.update({
         _get_metric_pair(metrics.RankingMetricKey.MRR, topn=topn)
         for topn in [10, None]
@@ -309,8 +309,7 @@ class EstimatorBuilder(object):
 
     if self._hparams.get(_METRIC_WEIGHT):
       weight = self._hparams.get(_METRIC_WEIGHT)
-      tf.compat.v1.logging.info("Metric weight %s=%s" %
-                                (_METRIC_WEIGHT, weight))
+      tf.compat.v1.logging.info(f"Metric weight {_METRIC_WEIGHT}={weight}")
       metric_fns.update({
           _get_metric_pair(
               metrics.RankingMetricKey.NDCG, weight=weight, topn=topn)
@@ -331,11 +330,7 @@ class EstimatorBuilder(object):
     """Returns a groupwise score fn to build `EstimatorSpec`."""
     del [params, config]  # They are not used.
 
-    # Squeeze the group features because we are in univariate mode.
-    example_features = {}
-    for k, v in group_features.items():
-      example_features[k] = tf.squeeze(v, 1)
-
+    example_features = {k: tf.squeeze(v, 1) for k, v in group_features.items()}
     if self._scoring_function is None:
       raise ValueError("The attribute `scoring_function` is being used before"
                        "being assigned.")
@@ -567,8 +562,7 @@ def _feed_forward_network(x,
     if dropout:
       x = tf.compat.v1.layers.dropout(
           inputs=x, rate=dropout, training=is_training)
-  output = tf.compat.v1.layers.dense(x, units=output_units)
-  return output
+  return tf.compat.v1.layers.dense(x, units=output_units)
 
 
 def _make_gam_score_fn(context_hidden_units,

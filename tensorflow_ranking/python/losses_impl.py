@@ -146,9 +146,7 @@ def ndcg(labels, ranks=None, perm_mat=None):
     gains = tf.reduce_sum(
         input_tensor=perm_mat * tf.expand_dims(gains, 1), axis=-1)
   dcg = tf.reduce_sum(input_tensor=gains * discounts, axis=-1, keepdims=True)
-  normalized_dcg = dcg * inverse_max_dcg(labels)
-
-  return normalized_dcg
+  return dcg * inverse_max_dcg(labels)
 
 
 class _LambdaWeight(object, metaclass=abc.ABCMeta):
@@ -222,8 +220,8 @@ class DCGLambdaWeight(_LambdaWeight):
     self._gain_fn = gain_fn
     self._rank_discount_fn = rank_discount_fn
     self._normalized = normalized
-    assert 0. <= smooth_fraction <= 1., (
-        'smooth_fraction %s should be in range [0, 1].' % smooth_fraction)
+    assert (0.0 <= smooth_fraction <=
+            1.0), f'smooth_fraction {smooth_fraction} should be in range [0, 1].'
     self._smooth_fraction = smooth_fraction
 
   def pair_weights(self, labels, ranks):
@@ -863,14 +861,13 @@ class _ListwiseLoss(_RankingLoss):
     """See `_RankingLoss`."""
     if weights is None:
       return 1.0
-    else:
-      weights = tf.convert_to_tensor(value=weights)
-      labels = tf.convert_to_tensor(value=labels)
-      is_valid = utils.is_label_valid(labels)
-      labels = tf.where(is_valid, labels, tf.zeros_like(labels))
-      return tf.compat.v1.math.divide_no_nan(
-          tf.reduce_sum(input_tensor=(weights * labels), axis=1, keepdims=True),
-          tf.reduce_sum(input_tensor=labels, axis=1, keepdims=True))
+    weights = tf.convert_to_tensor(value=weights)
+    labels = tf.convert_to_tensor(value=labels)
+    is_valid = utils.is_label_valid(labels)
+    labels = tf.where(is_valid, labels, tf.zeros_like(labels))
+    return tf.compat.v1.math.divide_no_nan(
+        tf.reduce_sum(input_tensor=(weights * labels), axis=1, keepdims=True),
+        tf.reduce_sum(input_tensor=labels, axis=1, keepdims=True))
 
   def compute_per_list(self, labels, logits, weights, mask=None):
     """See `_RankingLoss`."""
@@ -1529,9 +1526,7 @@ def neural_sort(logits, name=None, mask=None):
                                      direction='DESCENDING', stable=True)
     p_logits = tf.gather(p_logits, sorted_mask_indices, batch_dims=1, axis=1)
 
-    smooth_perm = tf.nn.softmax(p_logits, -1)
-
-    return smooth_perm
+    return tf.nn.softmax(p_logits, -1)
 
 
 def gumbel_neural_sort(logits,

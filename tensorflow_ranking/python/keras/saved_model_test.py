@@ -129,9 +129,10 @@ EXAMPLE_FEATURE_SPEC = {
 
 
 def _create_test_ranking_models():
-  inputs = {}
-  inputs["query_length"] = tf.keras.Input(
-      name="query_length", shape=(1,), dtype=tf.int64)
+  inputs = {
+      "query_length":
+      tf.keras.Input(name="query_length", shape=(1, ), dtype=tf.int64)
+  }
   inputs["unigrams"] = tf.keras.Input(
       name="unigrams", shape=(None, 1), dtype=tf.string, ragged=True)
   inputs["utility"] = tf.keras.Input(

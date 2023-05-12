@@ -66,13 +66,13 @@ class TFRBertDataLoader(tfr_task.RankingDataLoader):
             shape=(params.seq_length,), dtype=tf.int64,
             default_value=[0] * params.seq_length)}
     if params.read_query_id:
-      example_feature_spec.update({
-          QUERY_ID: tf.io.FixedLenFeature(
-              shape=(1,), dtype=tf.int64, default_value=-1)})
+      example_feature_spec[QUERY_ID] = tf.io.FixedLenFeature(shape=(1, ),
+                                                             dtype=tf.int64,
+                                                             default_value=-1)
     if params.read_document_id:
-      example_feature_spec.update({
-          DOCUMENT_ID: tf.io.FixedLenFeature(
-              shape=(1,), dtype=tf.int64, default_value=-1)})
+      example_feature_spec[DOCUMENT_ID] = tf.io.FixedLenFeature(shape=(1, ),
+                                                                dtype=tf.int64,
+                                                                default_value=-1)
 
     super().__init__(params=params,
                      context_feature_spec=context_feature_spec,
@@ -165,14 +165,11 @@ class TFRBertTask(tfr_task.RankingTask):
                      logging_dir=logging_dir,
                      name=name,
                      **kwargs)
-    if params.validation_data:
-      if (params.train_data.mask_feature_name !=
-          params.validation_data.mask_feature_name):
-        raise ValueError('`mask_feature_name` in train and validation data is '
-                         'not matched! \"${}\" in train but \"${}\" in '
-                         'validation.'.format(
-                             params.train_data.mask_feature_name,
-                             params.validation_data.mask_feature_name))
+    if params.validation_data and (params.train_data.mask_feature_name !=
+                                   params.validation_data.mask_feature_name):
+      raise ValueError(
+          f'`mask_feature_name` in train and validation data is not matched! \"${params.train_data.mask_feature_name}\" in train but \"${params.validation_data.mask_feature_name}\" in validation.'
+      )
 
   def build_model(self):
     encoder_network = encoders.build_encoder(self.task_config.model.encoder)
@@ -217,18 +214,17 @@ class TFRBertTask(tfr_task.RankingTask):
     logs = {self.loss: loss}
     if metrics:
       self.process_metrics(metrics, labels, outputs)
-    logs.update({
-        _PREDICTION: outputs,
-        _LABEL: labels
-    })
+    logs |= {_PREDICTION: outputs, _LABEL: labels}
     # Collect extra feature values like query ids and document ids.
     # Notice that only 1-d features are supported.
     logging_feature_names = self._get_logging_feature_names()
-    logs.update({
-        feature_name: tf.squeeze(features[feature_name], axis=list(range(
-            2, len(tf.shape(features[feature_name])))))
+    logs |= {
+        feature_name: tf.squeeze(
+            features[feature_name],
+            axis=list(range(2, len(tf.shape(features[feature_name])))),
+        )
         for feature_name in logging_feature_names
-    })
+    }
     return logs
 
   def aggregate_logs(self, state=None, step_outputs=None):
@@ -260,17 +256,13 @@ class TFRBertTask(tfr_task.RankingTask):
           for key in list(
               self._get_output_feature_names()) + [_PREDICTION, _LABEL]
       }
-      output_path = os.path.join(
-          output_dir, '%s.csv' % (time.strftime('%s', time.localtime())))
+      output_path = os.path.join(output_dir,
+                                 f"{time.strftime('%s', time.localtime())}.csv")
       self._write_as_csv(flattened_output_logs, output_path)
 
-    # Calculate aggregated metrics.
-    output = {}
-    if self.task_config.aggregated_metrics:
-      output = self._calculate_aggregated_metrics(
-          flattened_aggregated_logs, QUERY_ID)
-
-    return output
+    return (self._calculate_aggregated_metrics(flattened_aggregated_logs,
+                                               QUERY_ID)
+            if self.task_config.aggregated_metrics else {})
 
   def _get_output_feature_names(self):
     """Returns a set of feature names that needs to be output."""
@@ -303,24 +295,19 @@ class TFRBertTask(tfr_task.RankingTask):
     metrics = [
         tfr_metrics.MeanAveragePrecisionMetric(name='Aggregated_MAP')
     ]
-    for topn in [1, 5, 10]:
-      metrics.append(
-          tfr_metrics.NDCGMetric(
-              name='Aggregated_NDCG@{}'.format(topn), topn=topn))
-    for topn in [1, 5, 10]:
-      metrics.append(
-          tfr_metrics.MRRMetric(
-              name='Aggregated_MRR@{}'.format(topn), topn=topn))
-
+    metrics.extend(
+        tfr_metrics.NDCGMetric(name=f'Aggregated_NDCG@{topn}', topn=topn)
+        for topn in [1, 5, 10])
+    metrics.extend(
+        tfr_metrics.MRRMetric(name=f'Aggregated_MRR@{topn}', topn=topn)
+        for topn in [1, 5, 10])
     output_results = {}
     for metric in metrics:
       for qid in qid2preds:
         preds = np.expand_dims(qid2preds[qid], 0)
         labels = np.expand_dims(qid2labels[qid], 0)
         metric.update_state(labels, preds)
-      output_results.update({
-          'agggregated_metrics/{}'.format(metric.name):
-              metric.result().numpy()})
+      output_results[f'agggregated_metrics/{metric.name}'] = metric.result().numpy()
       logging.info('agggregated_metrics/%s = %f',
                    metric.name, metric.result().numpy())
     return output_results

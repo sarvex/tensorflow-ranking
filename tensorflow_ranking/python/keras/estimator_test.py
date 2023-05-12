@@ -300,19 +300,19 @@ class KerasModelToEstimatorTest(tf.test.TestCase, parameterized.TestCase):
             context_feature_spec=context_feature_spec,
             example_feature_spec=example_feature_spec,
             size_feature_name=_SIZE)
-      else:
-        def pointwise_serving_fn():
-          serialized = tf.compat.v1.placeholder(
-              dtype=tf.string, shape=[None], name='input_ranking_tensor')
-          receiver_tensors = {'input_ranking_data': serialized}
-          features = data.parse_from_tf_example(
-              serialized,
-              context_feature_spec=context_feature_spec,
-              example_feature_spec=example_feature_spec,
-              size_feature_name=_SIZE)
-          return tf.estimator.export.ServingInputReceiver(features,
-                                                          receiver_tensors)
-        return pointwise_serving_fn
+      def pointwise_serving_fn():
+        serialized = tf.compat.v1.placeholder(
+            dtype=tf.string, shape=[None], name='input_ranking_tensor')
+        receiver_tensors = {'input_ranking_data': serialized}
+        features = data.parse_from_tf_example(
+            serialized,
+            context_feature_spec=context_feature_spec,
+            example_feature_spec=example_feature_spec,
+            size_feature_name=_SIZE)
+        return tf.estimator.export.ServingInputReceiver(features,
+                                                        receiver_tensors)
+
+      return pointwise_serving_fn
 
     serving_input_receiver_fn = _make_serving_input_fn(serving_default)
     export_dir = os.path.join(tf.compat.v1.test.get_temp_dir(), 'export')

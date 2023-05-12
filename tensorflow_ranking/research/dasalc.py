@@ -209,14 +209,12 @@ class DASALCPipeline(tfr.ext.pipeline.RankingPipeline):
     example_feature_spec = tf.feature_column.make_parse_example_spec(
         example_feature_columns().values())
 
-    serving_input_receiver_fn = (
-        tfr.data.build_ranking_serving_input_receiver_fn(
-            data_format="example_list_with_context",
-            context_feature_spec=context_feature_spec,
-            example_feature_spec=example_feature_spec,
-            mask_feature_name=_MASK))
-
-    return serving_input_receiver_fn
+    return tfr.data.build_ranking_serving_input_receiver_fn(
+        data_format="example_list_with_context",
+        context_feature_spec=context_feature_spec,
+        example_feature_spec=example_feature_spec,
+        mask_feature_name=_MASK,
+    )
 
   def _make_dataset(self,
                     batch_size,

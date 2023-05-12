@@ -159,18 +159,16 @@ class Signatures(tf.Module):
       A dict of signatures.
     """
     if serving_default not in ["regress", "predict"]:
-      raise ValueError("serving_default should be 'regress' or 'predict', "
-                       "but got {}".format(serving_default))
+      raise ValueError(
+          f"serving_default should be 'regress' or 'predict', but got {serving_default}"
+      )
     serving_default_function = (
         self.regress_tf_function()
         if serving_default == "regress" else self.predict_tf_function())
 
-    signatures = {
+    return {
         tf.saved_model.DEFAULT_SERVING_SIGNATURE_DEF_KEY:
-            serving_default_function,
-        tf.saved_model.REGRESS_METHOD_NAME:
-            self.regress_tf_function(),
-        tf.saved_model.PREDICT_METHOD_NAME:
-            self.predict_tf_function(),
+        serving_default_function,
+        tf.saved_model.REGRESS_METHOD_NAME: self.regress_tf_function(),
+        tf.saved_model.PREDICT_METHOD_NAME: self.predict_tf_function(),
     }
-    return signatures

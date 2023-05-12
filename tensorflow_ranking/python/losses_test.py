@@ -155,10 +155,7 @@ def _batch_aggregation(batch_loss_list, reduction=None):
   weight_sum = 0.
   for loss, weight, count in batch_loss_list:
     loss_sum += loss
-    if reduction == 'mean':
-      weight_sum += weight
-    else:
-      weight_sum += count
+    weight_sum += weight if reduction == 'mean' else count
   return loss_sum / weight_sum
 
 

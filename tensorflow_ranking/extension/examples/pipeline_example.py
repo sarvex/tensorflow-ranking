@@ -116,8 +116,7 @@ def example_feature_columns():
         key="document_tokens", hash_bucket_size=100)
   document_embedding_column = tf.feature_column.embedding_column(
       sparse_column, _EMBEDDING_DIMENSION)
-  feature_columns = {"document_tokens": document_embedding_column}
-  return feature_columns
+  return {"document_tokens": document_embedding_column}
 
 
 def scoring_function(context_features, example_features, mode):

@@ -187,14 +187,14 @@ def make_serving_input_fn():
   elif FLAGS.group_size == 1:
     # Exports accept tf.Example when group_size = 1.
     feature_spec = {}
-    feature_spec.update(example_feature_spec)
+    feature_spec |= example_feature_spec
     feature_spec.update(context_feature_spec)
     return tf.estimator.export.build_parsing_serving_input_receiver_fn(
         feature_spec)
   else:
-    raise ValueError("FLAGS.group_size should be 1, but is {} when "
-                     "FLAGS.export_listwise_inference is False".format(
-                         FLAGS.group_size))
+    raise ValueError(
+        f"FLAGS.group_size should be 1, but is {FLAGS.group_size} when FLAGS.export_listwise_inference is False"
+    )
 
 
 def make_transform_fn():
@@ -207,8 +207,8 @@ def make_transform_fn():
       # must be set to 1.
       if FLAGS.group_size != 1:
         raise ValueError(
-            "group_size should be 1 to be able to export model, but get %s" %
-            FLAGS.group_size)
+            f"group_size should be 1 to be able to export model, but get {FLAGS.group_size}"
+        )
       context_features, example_features = (
           tfr.feature.encode_pointwise_features(
               features=features,
@@ -291,18 +291,17 @@ def make_score_fn():
 
 def eval_metric_fns():
   """Returns a dict from name to metric functions."""
-  metric_fns = {}
-  metric_fns.update({
-      "metric/%s" % name: tfr.metrics.make_ranking_metric_fn(name) for name in [
+  metric_fns = {
+      f"metric/{name}": tfr.metrics.make_ranking_metric_fn(name)
+      for name in [
           tfr.metrics.RankingMetricKey.ARP,
           tfr.metrics.RankingMetricKey.ORDERED_PAIR_ACCURACY,
       ]
-  })
-  metric_fns.update({
+  } | {
       "metric/ndcg@%d" % topn: tfr.metrics.make_ranking_metric_fn(
           tfr.metrics.RankingMetricKey.NDCG, topn=topn)
       for topn in [1, 3, 5, 10]
-  })
+  }
   for topn in [1, 3, 5, 10]:
     metric_fns["metric/weighted_ndcg@%d" % topn] = (
         tfr.metrics.make_ranking_metric_fn(

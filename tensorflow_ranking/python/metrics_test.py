@@ -248,10 +248,10 @@ class MetricsTest(tf.test.TestCase):
       m_top_2 = metrics_lib.make_ranking_metric_fn(
           metrics_lib.RankingMetricKey.RECALL, topn=2)
       self._check_metrics([
-          (m([labels[0]], [scores[0]], features), 2. / 2.),
-          (m_top_1([labels[0]], [scores[0]], features), 0. / 2.),
-          (m_top_2([labels[0]], [scores[0]], features), 1. / 2.),
-          (m_top_2(labels, scores, features), (1. / 2. + 2. / 2.) / 2.),
+          (m([labels[0]], [scores[0]], features), 1.0),
+          (m_top_1([labels[0]], [scores[0]], features), 0.0 / 2.0),
+          (m_top_2([labels[0]], [scores[0]], features), 1.0 / 2.0),
+          (m_top_2(labels, scores, features), (1.0 / 2.0 + 1.0) / 2.0),
       ])
 
   def test_make_mean_average_precision_fn(self):
@@ -388,9 +388,8 @@ class MetricsTest(tf.test.TestCase):
           gain_fn=gain_fn,
           rank_discount_fn=rank_discount_fn)
       list_size = len(scores[0])
-      expected_modified_dcg_1 = sum([
-          mod_dcg_fn(labels[0][ind], ranks[0][ind]) for ind in range(list_size)
-      ])
+      expected_modified_dcg_1 = sum(
+          mod_dcg_fn(labels[0][ind], ranks[0][ind]) for ind in range(list_size))
       self._check_metrics([
           (m_mod([labels[0]], [scores[0]], features), expected_modified_dcg_1),
       ])
@@ -434,9 +433,8 @@ class MetricsTest(tf.test.TestCase):
           gain_fn=gain_fn,
           rank_discount_fn=rank_discount_fn)
       list_size = len(scores[0])
-      expected_modified_dcg_1 = sum([
-          mod_dcg_fn(labels[0][ind], ranks[0][ind]) for ind in range(list_size)
-      ])
+      expected_modified_dcg_1 = sum(
+          mod_dcg_fn(labels[0][ind], ranks[0][ind]) for ind in range(list_size))
       self._check_metrics([
           (m_mod([labels[0]], [scores[0]], features), expected_modified_dcg_1),
       ])
@@ -585,19 +583,25 @@ class MetricsTest(tf.test.TestCase):
       m_alt = metrics_lib.make_ranking_metric_fn(
           metrics_lib.RankingMetricKey.BPREF, use_trec_version=False)
       self._check_metrics([
-          (m([labels[0]], [scores[0]],
-             features), 1. / 2. * (1. - 1. / 1.)),  # = 0.
-          (m(labels, scores, features),
-           (1. / 2. * (1. - 1. / 1.) +
-            (1. / 2. * ((1. - 0. / 1.) + (1. - 1. / 1.)))) / 2),  # = 0.25
-          (m_w(labels, scores, features),
-           (3. * (1. / 2. * (1. - 1. / 1.)) +
-            5. * (1. / 2. * ((1. - 0. / 1.) + (1. - 1. / 1.)))) / (3. + 5.)),
-          (m_2(labels, scores, features), (0. +
-                                           (1. / 2. * (1. - 0. / 1.))) / 2.),
-          (m_alt(labels, scores, features),
-           (1. / 2. * (1. - 1. / 1.) +
-            (1. / 2. * ((1. - 0. / 2.) + (1. - 1. / 2.)))) / 2),  # = 0.5
+          (m([labels[0]], [scores[0]], features), 1.0 / 2.0 * 0.0),
+          (
+              m(labels, scores, features),
+              (((1.0 / 2.0 * 0.0 + 1.0 / 2.0 * (1.0 - 0.0 / 1.0 + 0.0))) / 2),
+          ),
+          (
+              m_w(labels, scores, features),
+              ((3.0 * (1.0 / 2.0 * 0.0) + 5.0 *
+                (1.0 / 2.0 * (1.0 - 0.0 / 1.0 + 0.0)))) / (3.0 + 5.0),
+          ),
+          (
+              m_2(labels, scores, features),
+              (0.0 + (1.0 / 2.0 * (1.0 - 0.0 / 1.0))) / 2.0,
+          ),
+          (
+              m_alt(labels, scores, features),
+              (((1.0 / 2.0 * 0.0 + 1.0 / 2.0 * ((1.0 - 0.0 / 2.0) +
+                                                (1.0 - 1.0 / 2.0)))) / 2),
+          ),
       ])
 
   def test_eval_metric(self):

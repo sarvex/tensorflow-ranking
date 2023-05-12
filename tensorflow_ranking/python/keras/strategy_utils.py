@@ -95,8 +95,7 @@ def get_strategy(
     resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu=tpu)
     tf.config.experimental_connect_to_cluster(resolver)
     tf.tpu.experimental.initialize_tpu_system(resolver)
-    strategy = tf.distribute.experimental.TPUStrategy(resolver)
-    return strategy
+    return tf.distribute.experimental.TPUStrategy(resolver)
   elif strategy == PS_STRATEGY:
     if cluster_resolver is None:
       cluster_resolver = tf.distribute.cluster_resolver.TFConfigClusterResolver(
@@ -113,7 +112,7 @@ def get_strategy(
         cluster_resolver, variable_partitioner)
   else:
     # TODO: integrate PSStrategy to pipeline.
-    raise ValueError("Unsupported strategy {}".format(strategy))
+    raise ValueError(f"Unsupported strategy {strategy}")
 
 
 class NullContextManager(object):
@@ -150,10 +149,7 @@ def strategy_scope(strategy: Optional[tf.distribute.Strategy]) -> Any:
   Returns:
     ContextManager for the distributed training strategy.
   """
-  if strategy is None:
-    return NullContextManager()
-
-  return strategy.scope()
+  return NullContextManager() if strategy is None else strategy.scope()
 
 
 def get_output_filepath(filepath: str,
@@ -178,7 +174,7 @@ def get_output_filepath(filepath: str,
     task_type, task_id = (strategy.cluster_resolver.task_type,
                           strategy.cluster_resolver.task_id)
     if task_type is not None and task_type != "chief":
-      basepath = "workertemp_" + str(task_id) if task_id is not None else ""
+      basepath = f"workertemp_{str(task_id)}" if task_id is not None else ""
       temp_dir = os.path.join(filepath, basepath)
       tf.io.gfile.makedirs(temp_dir)
       return temp_dir

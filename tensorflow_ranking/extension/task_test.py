@@ -92,8 +92,9 @@ class PipelineTest(tf.test.TestCase, parameterized.TestCase):
                 shape=(1,), dtype=tf.float32, default_value=0.0),
     }
     example_feature_spec = {
-        "custom_features_{}".format(i + 1):
-        tf.io.FixedLenFeature(shape=(1,), dtype=tf.float32, default_value=0.0)
+        f"custom_features_{i + 1}": tf.io.FixedLenFeature(shape=(1, ),
+                                                          dtype=tf.float32,
+                                                          default_value=0.0)
         for i in range(3)
     }
     label_spec = (_LABEL_FEATURE,

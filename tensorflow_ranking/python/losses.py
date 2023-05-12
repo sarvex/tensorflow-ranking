@@ -97,9 +97,8 @@ def make_loss_fn(loss_keys,
   if not isinstance(loss_keys, list):
     loss_keys = [loss_keys]
 
-  if loss_weights:
-    if len(loss_keys) != len(loss_weights):
-      raise ValueError('loss_keys and loss_weights must have the same size.')
+  if loss_weights and len(loss_keys) != len(loss_weights):
+    raise ValueError('loss_keys and loss_weights must have the same size.')
 
   params = params or {}
   gumbel_params = gumbel_params or {}

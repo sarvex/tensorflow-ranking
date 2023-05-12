@@ -52,7 +52,7 @@ class StrategyUtilsTest(tf.test.TestCase):
     filepath = "/tmp/test"
     if mwms_strategy.cluster_resolver.task_type == "worker":
       filepath = os.path.join(
-          filepath, "workertemp_" + str(mwms_strategy.cluster_resolver.task_id))
+          filepath, f"workertemp_{str(mwms_strategy.cluster_resolver.task_id)}")
     self.assertEqual(
         strategy_utils.get_output_filepath("/tmp/test", mwms_strategy),
         filepath)

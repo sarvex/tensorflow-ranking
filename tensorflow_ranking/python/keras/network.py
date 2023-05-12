@@ -192,12 +192,12 @@ class RankingNetwork(tf.keras.layers.Layer):
     """
     context_features, example_features = self.transform(
         features=inputs, training=training, mask=mask)
-    logits = self.compute_logits(
+    return self.compute_logits(
         context_features=context_features,
         example_features=example_features,
         training=training,
-        mask=mask)
-    return logits
+        mask=mask,
+    )
 
   def get_config(self):
     config = super(RankingNetwork, self).get_config()

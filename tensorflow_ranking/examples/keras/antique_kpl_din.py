@@ -214,20 +214,22 @@ def create_keras_inputs(
   """
   context_keras_inputs, example_keras_inputs = {}, {}
   # Create Keras inputs for context features.
-  context_keras_inputs.update({
-      k: tf.keras.Input(name=k, shape=(None,), dtype=tf.string, ragged=True)
+  context_keras_inputs |= {
+      k: tf.keras.Input(name=k, shape=(None, ), dtype=tf.string, ragged=True)
       for k in _CONTEXT_RAGGED_FEATURE_KEYS
-  })
+  }
   # Create Keras inputs for example features.
   # Setting feature dimension to be None, so that variable number of tokens can
   # be processed for embedding. Note that the embeddings are reduced via a
   # SUM, MEAN or user defined reduction for a fixed feature dimension which is
   # equal to the embedding size.
-  example_keras_inputs.update({
-      k:
-      tf.keras.Input(name=k, shape=(None, None), dtype=tf.string, ragged=True)
+  example_keras_inputs |= {
+      k: tf.keras.Input(name=k,
+                        shape=(None, None),
+                        dtype=tf.string,
+                        ragged=True)
       for k in _EXAMPLE_RAGGED_FEATURE_KEYS
-  })
+  }
   mask = tf.keras.Input(name=_MASK, shape=(None,), dtype=tf.bool)
 
   return context_keras_inputs, example_keras_inputs, mask

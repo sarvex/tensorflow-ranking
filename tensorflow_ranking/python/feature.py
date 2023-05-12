@@ -68,11 +68,11 @@ def _is_sequence_column_v2(feature_column):
     return True
   if isinstance(feature_column, feature_column_lib.SequenceNumericColumn):
     return True
-  if hasattr(feature_column, "categorical_column") and isinstance(
-      feature_column.categorical_column,
-      feature_column_lib.SequenceCategoricalColumn):
-    return True
-  return False
+  return bool(
+      hasattr(feature_column, "categorical_column") and isinstance(
+          feature_column.categorical_column,
+          feature_column_lib.SequenceCategoricalColumn,
+      ))
 
 
 def encode_features(features,
@@ -196,16 +196,15 @@ def encode_listwise_features(features,
     reshaped_features = {}
     for name in example_specs:
       if name not in features:
-        tf.compat.v1.logging.warn("Feature {} is not found.".format(name))
+        tf.compat.v1.logging.warn(f"Feature {name} is not found.")
         continue
       try:
         reshaped_features[name] = utils.reshape_first_ndims(
             features[name], 2, [batch_size * input_size])
       except:
         raise ValueError(
-            "2nd dimension of tensor must be equal to input size: {}, "
-            "but found feature {} with shape {}.".format(
-                input_size, name, features[name].get_shape()))
+            f"2nd dimension of tensor must be equal to input size: {input_size}, but found feature {name} with shape {features[name].get_shape()}."
+        )
 
     example_cols_to_tensors = encode_features(
         reshaped_features,

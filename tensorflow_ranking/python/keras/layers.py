@@ -254,15 +254,14 @@ class RestoreList(tf.keras.layers.Layer):
       raise ValueError('`flattened_logits` needs to be either '
                        '1D of [batch_size * list_size] or '
                        '2D of [batch_size * list_size, 1].')
-    if self._by_scatter:
-      nd_indices, _ = utils.padded_nd_indices(is_valid=list_mask)
-      counts = tf.scatter_nd(nd_indices, tf.ones_like(logits),
-                             tf.shape(list_mask))
-      logits = tf.scatter_nd(nd_indices, logits, tf.shape(list_mask))
-      return tf.where(
-          tf.math.greater(counts, 0.), logits / counts, tf.math.log(_EPSILON))
-    else:
+    if not self._by_scatter:
       return tf.where(list_mask, logits, tf.math.log(_EPSILON))
+    nd_indices, _ = utils.padded_nd_indices(is_valid=list_mask)
+    counts = tf.scatter_nd(nd_indices, tf.ones_like(logits),
+                           tf.shape(list_mask))
+    logits = tf.scatter_nd(nd_indices, logits, tf.shape(list_mask))
+    return tf.where(
+        tf.math.greater(counts, 0.), logits / counts, tf.math.log(_EPSILON))
 
   def get_config(self):
     config = super().get_config()
@@ -410,10 +409,7 @@ class SelfAttentionMask(tf.keras.layers.Layer):
     broadcast_ones = tf.ones(
         shape=[batch_size, from_seq_length, 1], dtype=inputs.dtype)
 
-    # Here we broadcast along two dimensions to create the mask.
-    mask = broadcast_ones * to_mask
-
-    return mask
+    return broadcast_ones * to_mask
 
 
 @tf.keras.utils.register_keras_serializable(package='tensorflow_ranking')
@@ -686,36 +682,33 @@ class GAMLayer(tf.keras.layers.Layer):
     self._dropout = dropout
 
     self._example_towers = []
-    for i in range(self._example_feature_num):
-      self._example_towers.append(
-          create_tower(
-              hidden_layer_dims=self._example_hidden_layer_dims,
-              output_units=1,
-              activation=self._activation,
-              use_batch_norm=self._use_batch_norm,
-              batch_norm_moment=self._batch_norm_moment,
-              dropout=self._dropout,
-              name='{}_example_tower_{}'.format(name, i)))
-
+    self._example_towers.extend(
+        create_tower(
+            hidden_layer_dims=self._example_hidden_layer_dims,
+            output_units=1,
+            activation=self._activation,
+            use_batch_norm=self._use_batch_norm,
+            batch_norm_moment=self._batch_norm_moment,
+            dropout=self._dropout,
+            name=f'{name}_example_tower_{i}',
+        ) for i in range(self._example_feature_num))
     self._context_towers = None
     if context_feature_num and context_feature_num > 0:
       if not context_hidden_layer_dims:
         raise ValueError(
-            'When `context_feature_num` > 0, `context_hidden_layer_dims` is '
-            'required! Currently `context_feature_num` is {}, but '
-            '`context_hidden_layer_dims` is {}'.format(
-                context_feature_num, context_hidden_layer_dims))
+            f'When `context_feature_num` > 0, `context_hidden_layer_dims` is required! Currently `context_feature_num` is {context_feature_num}, but `context_hidden_layer_dims` is {context_hidden_layer_dims}'
+        )
       self._context_towers = []
-      for i in range(self._context_feature_num):
-        self._context_towers.append(
-            create_tower(
-                hidden_layer_dims=self._context_hidden_layer_dims,
-                output_units=self._example_feature_num,
-                activation=self._activation,
-                use_batch_norm=self._use_batch_norm,
-                batch_norm_moment=self._batch_norm_moment,
-                dropout=self._dropout,
-                name='{}_context_tower_{}'.format(name, i)))
+      self._context_towers.extend(
+          create_tower(
+              hidden_layer_dims=self._context_hidden_layer_dims,
+              output_units=self._example_feature_num,
+              activation=self._activation,
+              use_batch_norm=self._use_batch_norm,
+              batch_norm_moment=self._batch_norm_moment,
+              dropout=self._dropout,
+              name=f'{name}_context_tower_{i}',
+          ) for i in range(self._context_feature_num))
 
   def call(
       self,
@@ -752,15 +745,14 @@ class GAMLayer(tf.keras.layers.Layer):
     """
     example_inputs, context_inputs = inputs
     if len(example_inputs) != self._example_feature_num:
-      raise ValueError('Mismatched number of features in `example_inputs` ({}) '
-                       'with `example_feature_num` ({})'.format(
-                           len(example_inputs), self._example_feature_num))
-    if context_inputs:
-      if (not self._context_towers or
-          len(context_inputs) != len(self._context_towers)):
-        raise ValueError('Mismatched number of features in `context_inputs` '
-                         '({}) with `_context_feature_num` ({})'.format(
-                             len(context_inputs), self._context_feature_num))
+      raise ValueError(
+          f'Mismatched number of features in `example_inputs` ({len(example_inputs)}) with `example_feature_num` ({self._example_feature_num})'
+      )
+    if context_inputs and (not self._context_towers
+                           or len(context_inputs) != len(self._context_towers)):
+      raise ValueError(
+          f'Mismatched number of features in `context_inputs` ({len(context_inputs)}) with `_context_feature_num` ({self._context_feature_num})'
+      )
 
     sub_logits_list = []
     for inputs, tower in zip(example_inputs, self._example_towers):

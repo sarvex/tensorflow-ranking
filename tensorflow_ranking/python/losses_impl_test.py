@@ -93,10 +93,7 @@ def _batch_aggregation(batch_loss_list, reduction=None):
   weight_sum = 0.
   for loss, weight, count in batch_loss_list:
     loss_sum += loss
-    if reduction == 'mean':
-      weight_sum += weight
-    else:
-      weight_sum += count
+    weight_sum += weight if reduction == 'mean' else count
   return loss_sum / weight_sum
 
 
@@ -659,11 +656,11 @@ class PairwiseLogisticLossTest(tf.test.TestCase):
                                  reduction=reduction).eval()
 
       logloss = lambda x: math.log(1. + math.exp(-x))
-      expected = (((3. / 2.) * logloss(3. - 2.) +
-                   (3. / 2.) * logloss(1. - 2.)) +
-                  ((1. / 1.) * logloss(3. - 1.) +
-                   (3. / 1.) * logloss(3. - 2.))) / ((3. / 2.) + (3. / 2.) +
-                                                     (1. / 1.) + (3. / 1.))
+      expected = ((3.0 / 2.0) * logloss(3.0 - 2.0) +
+                  (3.0 / 2.0) * logloss(1.0 - 2.0) +
+                  ((1.0 * logloss(3.0 - 1.0) +
+                    (3.0 / 1.0) * logloss(3.0 - 2.0)))) / (((
+                        (3.0 / 2.0) + (3.0 / 2.0) + 1.0) + 3.0 / 1.0))
       self.assertAllClose(result, expected)
 
   def test_pairwise_logistic_loss_with_invalid_labels(self):
@@ -762,11 +759,11 @@ class PairwiseHingeLossTest(tf.test.TestCase):
                                  reduction=reduction).eval()
 
       hingeloss = lambda x: max(0, 1. - x)
-      expected = (((3. / 2.) * hingeloss(3. - 2.) +
-                   (3. / 2.) * hingeloss(1. - 2.)) +
-                  ((1. / 1.) * hingeloss(3. - 1.) +
-                   (3. / 1.) * hingeloss(3. - 2.))) / ((3. / 2.) + (3. / 2.) +
-                                                       (1. / 1.) + (3. / 1.))
+      expected = ((3.0 / 2.0) * hingeloss(3.0 - 2.0) +
+                  (3.0 / 2.0) * hingeloss(1.0 - 2.0) +
+                  ((1.0 * hingeloss(3.0 - 1.0) +
+                    (3.0 / 1.0) * hingeloss(3.0 - 2.0)))) / (((
+                        (3.0 / 2.0) + (3.0 / 2.0) + 1.0) + 3.0 / 1.0))
       self.assertAllClose(result, expected)
 
   def test_pairwise_hinge_loss_with_invalid_labels(self):
@@ -866,11 +863,11 @@ class PairwiseSoftZeroOneLossTest(tf.test.TestCase):
                                  reduction=reduction).eval()
 
       softloss = lambda x: 1 / (1 + math.exp(x))
-      expected = (((3. / 2.) * softloss(3. - 2.) +
-                   (3. / 2.) * softloss(1. - 2.)) +
-                  ((1. / 1.) * softloss(3. - 1.) +
-                   (3. / 1.) * softloss(3. - 2.))) / ((3. / 2.) + (3. / 2.) +
-                                                      (1. / 1.) + (3. / 1.))
+      expected = ((3.0 / 2.0) * softloss(3.0 - 2.0) +
+                  (3.0 / 2.0) * softloss(1.0 - 2.0) +
+                  ((1.0 * softloss(3.0 - 1.0) +
+                    (3.0 / 1.0) * softloss(3.0 - 2.0)))) / (((
+                        (3.0 / 2.0) + (3.0 / 2.0) + 1.0) + 3.0 / 1.0))
       self.assertAllClose(result, expected)
 
   def test_pairwise_soft_zero_one_loss_with_invalid_labels(self):
@@ -1541,14 +1538,16 @@ class NeuralSortCrossEntropyLossTest(tf.test.TestCase):
         loss_fn = losses_impl.NeuralSortCrossEntropyLoss(name=None)
         self.assertAlmostEqual(
             loss_fn.compute(labels, scores, None, reduction).eval(),
-            (_softmax_cross_entropy(p_labels[0], p_scores[0]) / 3. +
-             _softmax_cross_entropy(p_labels[1][0:2], p_scores[1][0:2]) / 2.),
-            places=4)
+            (_softmax_cross_entropy(p_labels[0], p_scores[0]) / 3.0 +
+             _softmax_cross_entropy(p_labels[1][:2], p_scores[1][:2]) / 2.0),
+            places=4,
+        )
         self.assertAlmostEqual(
             loss_fn.compute(labels, scores, weights, reduction).eval(),
-            (_softmax_cross_entropy(p_labels[0], p_scores[0]) * 2.0 / 3. +
-             _softmax_cross_entropy(p_labels[1][0:2], p_scores[1][0:2]) / 2.),
-            places=4)
+            (_softmax_cross_entropy(p_labels[0], p_scores[0]) * 2.0 / 3.0 +
+             _softmax_cross_entropy(p_labels[1][:2], p_scores[1][:2]) / 2.0),
+            places=4,
+        )
 
   def test_neural_sort_cross_entropy_loss_should_ignore_invalid_items(self):
     with tf.Graph().as_default():

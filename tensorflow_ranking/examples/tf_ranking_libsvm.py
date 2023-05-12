@@ -125,7 +125,7 @@ class IteratorInitializerHook(tf.estimator.SessionRunHook):
 
 def example_feature_columns():
   """Returns the example feature columns."""
-  feature_names = ["{}".format(i + 1) for i in range(FLAGS.num_features)]
+  feature_names = [f"{i + 1}" for i in range(FLAGS.num_features)]
   return {
       name:
       tf.feature_column.numeric_column(name, shape=(1,), default_value=0.0)
@@ -287,8 +287,8 @@ def make_transform_fn():
       # must be set to 1.
       if FLAGS.group_size != 1:
         raise ValueError(
-            "group_size should be 1 to be able to export model, but get %s" %
-            FLAGS.group_size)
+            f"group_size should be 1 to be able to export model, but get {FLAGS.group_size}"
+        )
       context_features, example_features = (
           tfr.feature.encode_pointwise_features(
               features=features,
@@ -352,19 +352,17 @@ def make_score_fn():
 
 def get_eval_metric_fns():
   """Returns a dict from name to metric functions."""
-  metric_fns = {}
-  metric_fns.update({
-      "metric/%s" % name: tfr.metrics.make_ranking_metric_fn(name) for name in [
+  return {
+      f"metric/{name}": tfr.metrics.make_ranking_metric_fn(name)
+      for name in [
           tfr.metrics.RankingMetricKey.ARP,
           tfr.metrics.RankingMetricKey.ORDERED_PAIR_ACCURACY,
       ]
-  })
-  metric_fns.update({
+  } | {
       "metric/ndcg@%d" % topn: tfr.metrics.make_ranking_metric_fn(
           tfr.metrics.RankingMetricKey.NDCG, topn=topn)
       for topn in [1, 3, 5, 10]
-  })
-  return metric_fns
+  }
 
 
 def train_and_eval():

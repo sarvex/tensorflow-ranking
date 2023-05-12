@@ -81,11 +81,12 @@ def _decode_as_serialized_example_list(serialized):
   serialized = tf.convert_to_tensor(value=serialized)
   sizes, (serialized_context, serialized_list) = tf.io.decode_proto(
       serialized,
-      message_type="{}.{}".format(_PACKAGE, _MESSAGE_NAME),
+      message_type=f"{_PACKAGE}.{_MESSAGE_NAME}",
       field_names=[_CONTEXT_FIELD_NAME, _EXAMPLES_FIELD_NAME],
       output_types=[tf.string, tf.string],
       descriptor_source=(b"bytes://" +
-                         _get_descriptor_set().SerializeToString()))
+                         _get_descriptor_set().SerializeToString()),
+  )
   # For batched inputs, sizes is of shape [batch_size, 2], for both context and
   # examples. We slice to obtain the size for example lists.
   if sizes.get_shape().rank == 2:
@@ -110,12 +111,9 @@ class _RankingDataParser(object):
                seed=None):
     """Constructor."""
     if not example_feature_spec:
-      raise ValueError("example_feature_spec {} must not be empty.".format(
-          example_feature_spec))
-    if list_size is None or list_size <= 0:
-      self._list_size = None
-    else:
-      self._list_size = list_size
+      raise ValueError(
+          f"example_feature_spec {example_feature_spec} must not be empty.")
+    self._list_size = None if list_size is None or list_size <= 0 else list_size
     self._context_feature_spec = context_feature_spec
     self._example_feature_spec = example_feature_spec
     self._size_feature_name = size_feature_name
@@ -559,10 +557,9 @@ def _get_scalar_default_value(dtype, default_value):
     return default_value or ""
   elif default_value is None:
     return 0
-  elif isinstance(default_value, int) or isinstance(default_value, float):
+  elif isinstance(default_value, (int, float)):
     return default_value
-  elif (isinstance(default_value, list) or
-        isinstance(default_value, tuple)) and len(default_value) == 1:
+  elif (isinstance(default_value, (list, tuple))) and len(default_value) == 1:
     return default_value[0]
   else:
     raise ValueError("Only scalar or equivalent is allowed in default_value.")
@@ -907,7 +904,7 @@ def make_parsing_fn(data_format,
   if data_format in fns_dict:
     return functools.partial(fns_dict[data_format], **kwargs)
   else:
-    raise ValueError("Format {} is not supported.".format(data_format))
+    raise ValueError(f"Format {data_format} is not supported.")
 
 
 def build_ranking_dataset_with_parsing_fn(

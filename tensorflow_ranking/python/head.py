@@ -76,7 +76,7 @@ def create_ranking_head(loss_fn,
     ValueError: If `loss_fn` is not callable.
   """
   if not callable(loss_fn):
-    raise ValueError('Not callable loss_fn: {}'.format(loss_fn))
+    raise ValueError(f'Not callable loss_fn: {loss_fn}')
 
   return _RankingHead(
       loss_fn=loss_fn,
@@ -201,18 +201,17 @@ class _RankingHead(_AbstractRankingHead):
     else:
       labels = tf.cast(labels, dtype=tf.float32)
 
-    training_loss = self._loss_fn(labels, logits, features)
-
-    return training_loss
+    return self._loss_fn(labels, logits, features)
 
   def _labels_and_logits_metrics(self, labels, logits):
     """Returns metrics for labels and logits."""
     is_label_valid = tf.reshape(tf.greater_equal(labels, 0.), [-1])
-    metrics_dict = {}
-    for name, tensor in [('labels_mean', labels), ('logits_mean', logits)]:
-      metrics_dict[name] = tf.compat.v1.metrics.mean(
-          tf.boolean_mask(tensor=tf.reshape(tensor, [-1]), mask=is_label_valid))
-    return metrics_dict
+    return {
+        name: tf.compat.v1.metrics.mean(
+            tf.boolean_mask(tensor=tf.reshape(tensor, [-1]),
+                            mask=is_label_valid))
+        for name, tensor in [('labels_mean', labels), ('logits_mean', logits)]
+    }
 
   def create_estimator_spec(self,
                             features,
@@ -252,7 +251,7 @@ class _RankingHead(_AbstractRankingHead):
             metric_fn(labels=labels, predictions=logits, features=features)
             for name, metric_fn in six.iteritems(self._eval_metric_fns)
         }
-        eval_metric_ops.update(self._labels_and_logits_metrics(labels, logits))
+        eval_metric_ops |= self._labels_and_logits_metrics(labels, logits)
         return tf.estimator.EstimatorSpec(
             mode=mode,
             predictions=logits,
@@ -267,7 +266,7 @@ class _RankingHead(_AbstractRankingHead):
             train_op=_get_train_op(regularized_training_loss, self._train_op_fn,
                                    self._optimizer),
             predictions=logits)
-      raise ValueError('mode={} unrecognized'.format(mode))
+      raise ValueError(f'mode={mode} unrecognized')
 
 
 def _default_export_output(export_outputs, head_name):
@@ -278,11 +277,8 @@ def _default_export_output(export_outputs, head_name):
     return export_outputs[_DEFAULT_SERVING_KEY]
   except KeyError:
     raise ValueError(
-        '{} did not specify default export_outputs. '
-        'Given: {} '
-        'Suggested fix: Use one of the heads in tf.estimator, or include '
-        'key {} in export_outputs.'.format(head_name, export_outputs,
-                                           _DEFAULT_SERVING_KEY))
+        f'{head_name} did not specify default export_outputs. Given: {export_outputs} Suggested fix: Use one of the heads in tf.estimator, or include key {_DEFAULT_SERVING_KEY} in export_outputs.'
+    )
 
 
 class _MultiRankingHead(_AbstractRankingHead):
@@ -302,17 +298,14 @@ class _MultiRankingHead(_AbstractRankingHead):
       head_weights: A tuple or list of weights.
     """
     if not heads:
-      raise ValueError('Must specify heads. Given: {}'.format(heads))
-    if head_weights:
-      if len(head_weights) != len(heads):
-        raise ValueError(
-            'heads and head_weights must have the same size. '
-            'Given len(heads): {}. Given len(head_weights): {}.'.format(
-                len(heads), len(head_weights)))
+      raise ValueError(f'Must specify heads. Given: {heads}')
+    if head_weights and len(head_weights) != len(heads):
+      raise ValueError(
+          f'heads and head_weights must have the same size. Given len(heads): {len(heads)}. Given len(head_weights): {len(head_weights)}.'
+      )
     for head in heads:
       if head.name is None:
-        raise ValueError(
-            'All given heads must have name specified. Given: {}'.format(head))
+        raise ValueError(f'All given heads must have name specified. Given: {head}')
     self._heads = tuple(heads)
     self._head_weights = tuple(head_weights) if head_weights else tuple()
     # TODO: Figure out a better way to set train_op_fn and optimizer
@@ -331,29 +324,24 @@ class _MultiRankingHead(_AbstractRankingHead):
 
   def _check_logits_and_labels(self, logits, labels=None):
     """Validates the keys of logits and labels."""
-    head_names = []
-    for head in self._heads:
-      head_names.append(head.name)
-
+    head_names = [head.name for head in self._heads]
     if len(head_names) != len(set(head_names)):
       raise ValueError('Duplicated names in heads.')
 
     # Check the logits keys.
     if not isinstance(logits, dict):
       raise ValueError('logits in _MultiRankingHead should be a dict.')
-    logits_missing_names = list(set(head_names) - set(list(logits)))
-    if logits_missing_names:
-      raise ValueError('logits has missing values for head(s): {}.'.format(
-          logits_missing_names))
+    if logits_missing_names := list(set(head_names) - set(list(logits))):
+      raise ValueError(
+          f'logits has missing values for head(s): {logits_missing_names}.')
 
     # Check the labels keys.
     if labels is not None:
       if not isinstance(labels, dict):
         raise ValueError('labels in _MultiRankingHead should be a dict.')
-      labels_missing_names = list(set(head_names) - set(list(labels)))
-      if labels_missing_names:
-        raise ValueError('labels has missing values for head(s): {}.'.format(
-            labels_missing_names))
+      if labels_missing_names := list(set(head_names) - set(list(labels))):
+        raise ValueError(
+            f'labels has missing values for head(s): {labels_missing_names}.')
 
   def _merge_predict_export_outputs(self, all_estimator_spec):
     """Merges list of `EstimatorSpec` export_outputs for PREDICT.
@@ -378,15 +366,13 @@ class _MultiRankingHead(_AbstractRankingHead):
     for head, spec in zip(self._heads, all_estimator_spec):
       for k, v in six.iteritems(spec.export_outputs):
         # Collect default serving key for export_outputs
-        key = (
-            head.name if k == _DEFAULT_SERVING_KEY else '{}/{}'.format(
-                head.name, k))
+        key = head.name if k == _DEFAULT_SERVING_KEY else f'{head.name}/{k}'
         export_outputs[key] = v
         # Collect predict serving key for merged_predict_outputs
         if (k == _PREDICT_SERVING_KEY and
             isinstance(v, tf.estimator.export.PredictOutput)):
           for kp, vp in six.iteritems(v.outputs):
-            merged_predict_outputs['{}/{}'.format(head.name, kp)] = vp
+            merged_predict_outputs[f'{head.name}/{kp}'] = vp
     export_outputs[_PREDICT_SERVING_KEY] = (
         tf.estimator.export.PredictOutput(merged_predict_outputs))
     return export_outputs
@@ -410,14 +396,14 @@ class _MultiRankingHead(_AbstractRankingHead):
     training_losses = tuple(training_losses)
 
     with tf.compat.v1.name_scope(
-        'merge_losses',
-        values=training_losses + (self._head_weights or tuple())):
+          'merge_losses',
+          values=training_losses + (self._head_weights or tuple())):
       if self._head_weights:
-        head_weighted_training_losses = []
-        for training_loss, head_weight in zip(training_losses,
-                                              self._head_weights):
-          head_weighted_training_losses.append(
-              tf.math.multiply(training_loss, head_weight))
+        head_weighted_training_losses = [
+            tf.math.multiply(training_loss,
+                             head_weight) for training_loss, head_weight in zip(
+                                 training_losses, self._head_weights)
+        ]
         training_losses = head_weighted_training_losses
       merged_training_loss = tf.math.add_n(training_losses)
       regularization_loss = tf.math.add_n(
@@ -432,10 +418,10 @@ class _MultiRankingHead(_AbstractRankingHead):
     # TODO: Add the per-head loss loss/head_name to metrics.
     eval_metric_ops = {}
     for head, spec in zip(self._heads, all_estimator_spec):
-      eval_metric_ops.update({
-          '{}/{}'.format(head.name, name): op
+      eval_metric_ops |= {
+          f'{head.name}/{name}': op
           for name, op in six.iteritems(spec.eval_metric_ops)
-      })
+      }
     return eval_metric_ops
 
   def create_estimator_spec(self,
@@ -447,15 +433,14 @@ class _MultiRankingHead(_AbstractRankingHead):
     """See `_AbstractRankingHead`."""
     with tf.compat.v1.name_scope(self.name, 'multi_head'):
       self._check_logits_and_labels(logits, labels)
-      # Get all estimator spec.
-      all_estimator_spec = []
-      for head in self._heads:
-        all_estimator_spec.append(
-            head.create_estimator_spec(
-                features=features,
-                mode=mode,
-                logits=logits[head.name],
-                labels=labels[head.name] if labels else None))
+      all_estimator_spec = [
+          head.create_estimator_spec(
+              features=features,
+              mode=mode,
+              logits=logits[head.name],
+              labels=labels[head.name] if labels else None,
+          ) for head in self._heads
+      ]
       # Predict.
       if mode == tf.estimator.ModeKeys.PREDICT:
         export_outputs = self._merge_predict_export_outputs(all_estimator_spec)
@@ -482,4 +467,4 @@ class _MultiRankingHead(_AbstractRankingHead):
             train_op=_get_train_op(loss, self._train_op_fn, self._optimizer),
             predictions=logits,
             eval_metric_ops=eval_metric_ops)
-      raise ValueError('mode={} unrecognized'.format(mode))
+      raise ValueError(f'mode={mode} unrecognized')

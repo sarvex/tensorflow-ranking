@@ -104,8 +104,7 @@ def compute_mean(metric_key,
       RankingMetricKey.ORDERED_PAIR_ACCURACY: metrics_impl.OPAMetric(name),
       RankingMetricKey.BPREF: metrics_impl.BPrefMetric(name, topn),
   }
-  assert metric_key in metric_dict, ('metric_key %s not supported.' %
-                                     metric_key)
+  assert metric_key in metric_dict, f'metric_key {metric_key} not supported.'
   # TODO: Add mask argument for metric.compute() call
   metric, weight = metric_dict[metric_key].compute(labels, predictions, weights)
   return tf.compat.v1.div_no_nan(
@@ -268,8 +267,7 @@ def make_ranking_metric_fn(metric_key,
       RankingMetricKey.ALPHA_DCG: _alpha_discounted_cumulative_gain_fn,
       RankingMetricKey.BPREF: _binary_preference_fn,
   }
-  assert metric_key in metric_fn_dict, ('metric_key %s not supported.' %
-                                        metric_key)
+  assert metric_key in metric_fn_dict, f'metric_key {metric_key} not supported.'
   return metric_fn_dict[metric_key]
 
 
@@ -657,13 +655,12 @@ def eval_metric(metric_fn, **kwargs):
   required_metric_args = (metric_args[:-len(metric_spec.defaults)])
   for arg in required_metric_args:
     if arg not in kwargs:
-      raise ValueError('Metric %s requires argument %s.' %
-                       (metric_fn.__name__, arg))
+      raise ValueError(f'Metric {metric_fn.__name__} requires argument {arg}.')
   args = {}
   for arg in kwargs:
     if arg not in metric_args:
-      raise ValueError('Metric %s does not accept argument %s.' %
-                       (metric_fn.__name__, arg))
+      raise ValueError(
+          f'Metric {metric_fn.__name__} does not accept argument {arg}.')
     args[arg] = kwargs[arg]
 
   with tf.compat.v1.Session() as sess:

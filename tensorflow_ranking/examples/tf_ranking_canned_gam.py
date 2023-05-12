@@ -77,9 +77,7 @@ _LABEL_FEATURE = "utility"
 
 def example_feature_columns():
   """Returns the example feature columns."""
-  feature_names = [
-      "custom_features_{}".format(i + 1) for i in range(FLAGS.num_features)
-  ]
+  feature_names = [f"custom_features_{i + 1}" for i in range(FLAGS.num_features)]
   return {
       name:
       tf.feature_column.numeric_column(name, shape=(1,), default_value=0.0)

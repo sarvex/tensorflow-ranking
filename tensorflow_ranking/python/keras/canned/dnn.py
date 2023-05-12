@@ -82,15 +82,16 @@ class DNNRankingNetwork(network_lib.UnivariateRankingNetwork):
     if self._use_batch_norm:
       layers.append(
           tf.keras.layers.BatchNormalization(momentum=self._batch_norm_moment))
-    for _, layer_width in enumerate(self._hidden_layer_dims):
+    for layer_width in self._hidden_layer_dims:
       layers.append(tf.keras.layers.Dense(units=layer_width))
       if self._use_batch_norm:
         layers.append(
             tf.keras.layers.BatchNormalization(
                 momentum=self._batch_norm_moment))
-      layers.append(tf.keras.layers.Activation(activation=self._activation))
-      layers.append(tf.keras.layers.Dropout(rate=self._dropout))
-
+      layers.extend((
+          tf.keras.layers.Activation(activation=self._activation),
+          tf.keras.layers.Dropout(rate=self._dropout),
+      ))
     self._scoring_layers = layers
 
     self._output_score_layer = tf.keras.layers.Dense(units=1)

@@ -449,14 +449,14 @@ class ExampleListTest(tf.test.TestCase):
           EXAMPLE_LIST_PROTO_1.SerializeToString(),
           EXAMPLE_LIST_PROTO_2.SerializeToString()
       ]
-      feature_map_list = []
-      for list_size in [None, 100, 1]:
-        feature_map_list.append(
-            data_lib.parse_from_example_list(
-                serialized_example_lists,
-                list_size=list_size,
-                context_feature_spec=CONTEXT_FEATURE_SPEC,
-                example_feature_spec=EXAMPLE_FEATURE_SPEC))
+      feature_map_list = [
+          data_lib.parse_from_example_list(
+              serialized_example_lists,
+              list_size=list_size,
+              context_feature_spec=CONTEXT_FEATURE_SPEC,
+              example_feature_spec=EXAMPLE_FEATURE_SPEC,
+          ) for list_size in [None, 100, 1]
+      ]
       for features in feature_map_list:
         self.assertAllEqual([2, 1],
                             features["query_length"].get_shape().as_list())
@@ -605,14 +605,14 @@ class ExampleListWithRaggedTest(tf.test.TestCase):
           EXAMPLE_LIST_PROTO_1.SerializeToString(),
           EXAMPLE_LIST_PROTO_2.SerializeToString()
       ]
-      feature_map_list = []
-      for list_size in [None, 100, 1]:
-        feature_map_list.append(
-            data_lib.parse_from_example_list(
-                serialized_example_lists,
-                list_size=list_size,
-                context_feature_spec=CONTEXT_RAGGED_FEATURE_SPEC,
-                example_feature_spec=EXAMPLE_RAGGED_FEATURE_SPEC))
+      feature_map_list = [
+          data_lib.parse_from_example_list(
+              serialized_example_lists,
+              list_size=list_size,
+              context_feature_spec=CONTEXT_RAGGED_FEATURE_SPEC,
+              example_feature_spec=EXAMPLE_RAGGED_FEATURE_SPEC,
+          ) for list_size in [None, 100, 1]
+      ]
       # Shape can only be checked for non-ragged tensors.
       for features, static_shape in zip(feature_map_list, [
           [2, 2, 1],

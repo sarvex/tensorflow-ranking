@@ -145,7 +145,7 @@ class RankingPipelineTest(tf.test.TestCase):
     tf.compat.v1.reset_default_graph()
 
     # Prepares model directory, and train and eval data.
-    self._model_dir = tf.compat.v1.test.get_temp_dir() + "/ranking_pipeline/"
+    self._model_dir = f"{tf.compat.v1.test.get_temp_dir()}/ranking_pipeline/"
     tf.io.gfile.makedirs(self._model_dir)
     self._data_file = os.path.join(self._model_dir, "elwc.tfrecord")
     _write_tfrecord_files(self._data_file)
@@ -331,7 +331,7 @@ class RankingPipelineIntegrationTest(tf.test.TestCase):
     tf.compat.v1.reset_default_graph()
 
     # Prepares model directory, and train and eval data.
-    self._model_dir = tf.compat.v1.test.get_temp_dir() + "/model/"
+    self._model_dir = f"{tf.compat.v1.test.get_temp_dir()}/model/"
     tf.io.gfile.makedirs(self._model_dir)
     self._data_file = os.path.join(self._model_dir, "elwc.tfrecord")
     _write_tfrecord_files(self._data_file)
@@ -346,7 +346,7 @@ class RankingPipelineIntegrationTest(tf.test.TestCase):
     self._model_dir = None
 
   def test_pipeline(self):
-    model_dir = self._model_dir + "pipeline/"
+    model_dir = f"{self._model_dir}pipeline/"
     hparams = _make_hparams(
         train_input_pattern=self._data_file,
         eval_input_pattern=self._data_file,
@@ -370,7 +370,7 @@ class RankingPipelineIntegrationTest(tf.test.TestCase):
       self.assertRegex(",".join(output_files), pattern)
 
   def test_pipeline_with_best_exporter(self):
-    model_dir = self._model_dir + "pipeline-exporter/"
+    model_dir = f"{self._model_dir}pipeline-exporter/"
     hparams = _make_hparams(
         train_input_pattern=self._data_file,
         eval_input_pattern=self._data_file,
@@ -384,24 +384,24 @@ class RankingPipelineIntegrationTest(tf.test.TestCase):
 
     pip = RankingPipelineClient().build_best_exporter_pipeline(hparams)
     pip.train_and_eval(local_training=True)
-    self.assertTrue(tf.io.gfile.exists(model_dir + "export/latest_model"))
-    self.assertTrue(
-        tf.io.gfile.exists(model_dir + "export/best_model_by_metric"))
+    self.assertTrue(tf.io.gfile.exists(f"{model_dir}export/latest_model"))
+    self.assertTrue(tf.io.gfile.exists(f"{model_dir}export/best_model_by_metric"))
     for export_strategy in [
         "export/latest_model", "export/best_model_by_metric"]:
       base_dir = model_dir + export_strategy
       saved_models = tf.io.gfile.listdir(base_dir)
       self.assertNotEmpty(saved_models)
       for saved_model_dir in saved_models:
-        asset_dir = base_dir + f"/{saved_model_dir}/assets.extra"
+        asset_dir = f"{base_dir}/{saved_model_dir}/assets.extra"
         self.assertTrue(tf.io.gfile.exists(asset_dir))
-        self.assertTrue(tf.io.gfile.exists(asset_dir + "/text_asset"))
+        self.assertTrue(tf.io.gfile.exists(f"{asset_dir}/text_asset"))
         self.assertEqual(
             self._asset_content,
-            tf.io.gfile.GFile(asset_dir + "/text_asset").read())
+            tf.io.gfile.GFile(f"{asset_dir}/text_asset").read(),
+        )
 
   def test_pipeline_with_listwise_inference(self):
-    model_dir = self._model_dir + "pipeline-elwc/"
+    model_dir = f"{self._model_dir}pipeline-elwc/"
     hparams = _make_hparams(
         train_input_pattern=self._data_file,
         eval_input_pattern=self._data_file,
@@ -426,7 +426,7 @@ class RankingPipelineIntegrationTest(tf.test.TestCase):
       self.assertRegex(",".join(output_files), pattern)
 
   def test_pipeline_with_size_feature_name(self):
-    model_dir = self._model_dir + "pipeline-size-feature/"
+    model_dir = f"{self._model_dir}pipeline-size-feature/"
     hparams = _make_hparams(
         train_input_pattern=self._data_file,
         eval_input_pattern=self._data_file,

@@ -134,10 +134,7 @@ def _group_score_fn(context_features, group_features, mode, params, config):
       tf.reshape(group_features['age'], [batch_size, -1])
   ],
                           axis=1)
-  # Shape is [batch_size, 2].
-  # TODO: Convert to tf.keras.layers.Dense, and change *_NAME.
-  group_score = tf.compat.v1.layers.dense(input_layer, units=2)
-  return group_score
+  return tf.compat.v1.layers.dense(input_layer, units=2)
 
 
 def _train_input_fn():
@@ -384,10 +381,7 @@ class GroupwiseRankingEstimatorTest(tf.test.TestCase):
                          expected_weights=None,
                          expected_bias=None):
     """Assert the values and shapes of the variables saved in the checkpoint."""
-    shapes = {
-        name: shape
-        for (name, shape) in tf.train.list_variables(self._model_dir)
-    }
+    shapes = dict(tf.train.list_variables(self._model_dir))
 
     reader = tf.train.load_checkpoint(self._model_dir)
 
@@ -447,8 +441,11 @@ class GroupwiseRankingEstimatorTest(tf.test.TestCase):
             'labels_mean': 0.3333333,
             'logits_mean': 300.833343,
         },
-        dict((name, eval_output[name])
-             for name in ['global_step', 'loss', 'labels_mean', 'logits_mean']))
+        {
+            name: eval_output[name]
+            for name in ['global_step', 'loss', 'labels_mean', 'logits_mean']
+        },
+    )
 
   def test_predict(self):
     """Load a static checkpoint and test predict function."""

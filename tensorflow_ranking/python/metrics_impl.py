@@ -55,10 +55,8 @@ def _alpha_dcg_gain_fn(labels, alpha):
   """
   # Cumulative number of topics covered along the list_size dimension.
   cum_subtopics = tf.cumsum(labels, axis=1, exclusive=True)
-  gains = tf.reduce_sum(
-      tf.multiply(labels, tf.pow(1 - alpha, cum_subtopics)), axis=-1)
-
-  return gains
+  return tf.reduce_sum(tf.multiply(labels, tf.pow(1 - alpha, cum_subtopics)),
+                       axis=-1)
 
 
 def _per_example_weights_to_per_list_weights(weights, relevance):
@@ -172,10 +170,10 @@ def _per_list_recall(labels, predictions, topn, mask):
   topn_positives = tf.cast(
       tf.greater_equal(sorted_labels, 1.0), dtype=tf.float32)
   labels = tf.cast(tf.greater_equal(labels, 1.0), dtype=tf.float32)
-  per_list_recall = tf.compat.v1.math.divide_no_nan(
+  return tf.compat.v1.math.divide_no_nan(
       tf.reduce_sum(input_tensor=topn_positives, axis=1, keepdims=True),
-      tf.reduce_sum(input_tensor=labels, axis=1, keepdims=True))
-  return per_list_recall
+      tf.reduce_sum(input_tensor=labels, axis=1, keepdims=True),
+  )
 
 
 def _per_list_precision(labels, predictions, topn, mask):
@@ -202,10 +200,10 @@ def _per_list_precision(labels, predictions, topn, mask):
     topn = tf.shape(relevance)[1]
   valid_topn = tf.minimum(
       topn, tf.reduce_sum(tf.cast(mask, dtype=tf.int32), axis=1, keepdims=True))
-  per_list_precision = tf.compat.v1.math.divide_no_nan(
+  return tf.compat.v1.math.divide_no_nan(
       tf.reduce_sum(input_tensor=relevance, axis=1, keepdims=True),
-      tf.cast(valid_topn, dtype=tf.float32))
-  return per_list_precision
+      tf.cast(valid_topn, dtype=tf.float32),
+  )
 
 
 class _RankingMetric(six.with_metaclass(abc.ABCMeta, object)):

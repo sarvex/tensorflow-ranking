@@ -767,15 +767,11 @@ class UnivariateScorer(Scorer, metaclass=abc.ABCMeta):
     flattened_logits = self._score_flattened(flattened_context_features,
                                              flattened_example_features)
 
-    # Handle a dict of logits for the multi-task setting.
-    if isinstance(flattened_logits, dict):
-      logits = {
-          k: layers.RestoreList(name=k)(inputs=(v, mask))
-          for k, v in flattened_logits.items()
-      }
-    else:
-      logits = layers.RestoreList()(inputs=(flattened_logits, mask))
-    return logits
+    return ({
+        k: layers.RestoreList(name=k)(inputs=(v, mask))
+        for k, v in flattened_logits.items()
+    } if isinstance(flattened_logits, dict) else layers.RestoreList()(
+        inputs=(flattened_logits, mask)))
 
 
 class DNNScorer(UnivariateScorer):
@@ -813,9 +809,7 @@ class DNNScorer(UnivariateScorer):
         for name in sorted(example_features)
     ]
     input_layer = tf.concat(context_input_layer + example_input_layer, 1)
-    flattened_logits = layers.create_tower(**self._dnn_kwargs)(input_layer)
-
-    return flattened_logits
+    return layers.create_tower(**self._dnn_kwargs)(input_layer)
 
 
 class GAMScorer(UnivariateScorer):

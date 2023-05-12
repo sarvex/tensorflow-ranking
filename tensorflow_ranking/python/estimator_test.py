@@ -148,7 +148,7 @@ def _multiply_by_two_transform_fn(features, mode):
 
 
 def _get_hparams():
-  hparams = dict(
+  return dict(
       train_input_pattern="",
       eval_input_pattern="",
       learning_rate=0.01,
@@ -162,8 +162,8 @@ def _get_hparams():
       list_size=10,
       listwise_inference=False,
       convert_labels_to_binary=False,
-      model_dir=None)
-  return hparams
+      model_dir=None,
+  )
 
 
 class EstimatorBuilderTest(tf.test.TestCase):

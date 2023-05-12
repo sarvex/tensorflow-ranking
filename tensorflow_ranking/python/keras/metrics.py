@@ -111,18 +111,16 @@ def get(key: str,
 
   metric_kwargs = {"name": name, "dtype": dtype}
   if topn:
-    metric_kwargs.update({"topn": topn})
+    metric_kwargs["topn"] = topn
 
   if kwargs:
-    metric_kwargs.update(kwargs)
+    metric_kwargs |= kwargs
 
-  if key in key_to_cls:
-    metric_cls = key_to_cls[key]
-    metric_obj = metric_cls(**metric_kwargs)
-  else:
-    raise ValueError("Unsupported metric: {}".format(key))
+  if key not in key_to_cls:
+    raise ValueError(f"Unsupported metric: {key}")
 
-  return metric_obj
+  metric_cls = key_to_cls[key]
+  return metric_cls(**metric_kwargs)
 
 
 def default_keras_metrics(**kwargs) -> List[tf.keras.metrics.Metric]:
@@ -135,17 +133,20 @@ def default_keras_metrics(**kwargs) -> List[tf.keras.metrics.Metric]:
     A list of metrics of type `tf.keras.metrics.Metric`.
   """
   list_kwargs = [
-      dict(key="ndcg", topn=topn, name="metric/ndcg_{}".format(topn), **kwargs)
+      dict(key="ndcg", topn=topn, name=f"metric/ndcg_{topn}", **kwargs)
       for topn in [1, 3, 5, 10]
   ] + [
       dict(key="arp", name="metric/arp", **kwargs),
-      dict(key="ordered_pair_accuracy", name="metric/ordered_pair_accuracy",
-           **kwargs),
+      dict(
+          key="ordered_pair_accuracy",
+          name="metric/ordered_pair_accuracy",
+          **kwargs,
+      ),
       dict(key="mrr", name="metric/mrr", **kwargs),
       dict(key="precision", name="metric/precision", **kwargs),
       dict(key="map", name="metric/map", **kwargs),
       dict(key="dcg", name="metric/dcg", **kwargs),
-      dict(key="ndcg", name="metric/ndcg", **kwargs)
+      dict(key="ndcg", name="metric/ndcg", **kwargs),
   ]
   return [get(**kwargs) for kwargs in list_kwargs]
 
@@ -633,7 +634,7 @@ class MeanAveragePrecisionMetric(_RankingMetric):
     config = {
         "topn": self._topn,
     }
-    config.update(base_config)
+    config |= base_config
     return config
 
 
@@ -723,7 +724,7 @@ class NDCGMetric(_RankingMetric):
         "gain_fn": self._gain_fn,
         "rank_discount_fn": self._rank_discount_fn,
     }
-    config.update(base_config)
+    config |= base_config
     return config
 
 
@@ -809,7 +810,7 @@ class DCGMetric(_RankingMetric):
         "gain_fn": self._gain_fn,
         "rank_discount_fn": self._rank_discount_fn,
     }
-    config.update(base_config)
+    config |= base_config
     return config
 
 

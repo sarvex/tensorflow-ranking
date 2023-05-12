@@ -360,8 +360,8 @@ class MetricsTest(tf.test.TestCase):
 
     metric_ = metrics_lib.MRRMetric()
     metric_.update_state(labels, scores)
-    expected_result = sum([1. / rel_rank[ind] for ind in range(num_queries)
-                          ]) / num_queries
+    expected_result = (sum(1.0 / rel_rank[ind]
+                           for ind in range(num_queries)) / num_queries)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.MRRMetric(topn=1)
@@ -377,9 +377,9 @@ class MetricsTest(tf.test.TestCase):
 
     metric_ = metrics_lib.MRRMetric()
     metric_.update_state(labels, scores, weights)
-    expected_result = sum([
-        mean_relevant_weights[ind] / rel_rank[ind] for ind in range(num_queries)
-    ]) / sum(mean_relevant_weights)
+    expected_result = sum(
+        mean_relevant_weights[ind] / rel_rank[ind]
+        for ind in range(num_queries)) / sum(mean_relevant_weights)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.MRRMetric(topn=1)
@@ -465,13 +465,13 @@ class MetricsTest(tf.test.TestCase):
     self.assertAllClose(as_list_weights, [(3 + 5.5) / 2., 3, 5.5])
     metric_ = metrics_lib.PrecisionMetric(topn=2)
     metric_.update_state(labels, scores, weights)
-    expected_result = (0.0 * as_list_weights[0] +
-                       (1. / 2.) * as_list_weights[1] +
-                       (2. / 2.) * as_list_weights[2]) / sum(as_list_weights)
+    expected_result = ((0.0 * as_list_weights[0] +
+                        (1.0 / 2.0) * as_list_weights[1] +
+                        1.0 * as_list_weights[2])) / sum(as_list_weights)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.PrecisionMetric()
-    metric_.update_state(labels[0:2], scores[0:2], [[0., 0., 0.], [0., 0., 0.]])
+    metric_.update_state(labels[:2], scores[:2], [[0., 0., 0.], [0., 0., 0.]])
     self.assertAlmostEqual(metric_.result().numpy(), 0., places=5)
 
   def test_precision_with_weights(self):
@@ -490,8 +490,8 @@ class MetricsTest(tf.test.TestCase):
 
     metric_ = metrics_lib.PrecisionMetric(topn=2)
     metric_.update_state(labels, scores, weights)
-    expected_result = ((1. / 2.) * as_list_weights[0] +
-                       (2. / 2.) * as_list_weights[1]) / sum(as_list_weights)
+    expected_result = (((1.0 / 2.0) * as_list_weights[0] +
+                        1.0 * as_list_weights[1])) / sum(as_list_weights)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     # Per list weight.
@@ -602,7 +602,7 @@ class MetricsTest(tf.test.TestCase):
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.PrecisionIAMetric()
-    metric_.update_state(labels[0:2], scores[0:2], [[0., 0., 0.], [0., 0., 0.]])
+    metric_.update_state(labels[:2], scores[:2], [[0., 0., 0.], [0., 0., 0.]])
     self.assertAlmostEqual(metric_.result().numpy(), 0., places=5)
 
   def test_mean_average_precision(self):
@@ -659,31 +659,29 @@ class MetricsTest(tf.test.TestCase):
 
     metric_ = metrics_lib.MeanAveragePrecisionMetric()
     metric_.update_state([labels[1]], [scores[1]], [weights[1]])
-    expected_result = ((1. / 1.) * 6. +
-                       (2. / 2.) * 5.) / (0 * 4 + 1 * 5 + 1 * 6)
+    expected_result = ((1.0 * 6. + 1.0 * 5.)) / (0 * 4 + 1 * 5 + 1 * 6)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.MeanAveragePrecisionMetric()
     metric_.update_state(labels, scores, weights)
     expected_result = (
-        ((1. / 2.) * 3.) / (0 * 1 + 0 * 2 + 1 * 3) * as_list_weights[0] +
-        ((1. / 1.) * 6. + (2. / 2.) * 5.) /
-        (0 * 4 + 1 * 5 + 1 * 6) * as_list_weights[1]) / sum(as_list_weights)
+        ((1.0 / 2.0) * 3.0) / (0 * 1 + 0 * 2 + 1 * 3) * as_list_weights[0] +
+        ((1.0 * 6.0 + 1.0 * 5.0) /
+         (0 * 4 + 1 * 5 + 1 * 6) * as_list_weights[1])) / sum(as_list_weights)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.MeanAveragePrecisionMetric(topn=1)
     metric_.update_state(labels, scores, weights)
-    expected_result = ((0. / (1 * 3) * as_list_weights[0] + ((1. / 1.) * 6.) /
-                        (1 * 5 + 1 * 6) * as_list_weights[1]) /
-                       sum(as_list_weights))
+    expected_result = ((0.0 / (1 * 3) * as_list_weights[0] + (
+        (1.0 * 6.0 /
+         (1 * 5 + 1 * 6)) * as_list_weights[1]))) / sum(as_list_weights)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.MeanAveragePrecisionMetric(topn=2)
     metric_.update_state(labels, scores, weights)
-    expected_result = (
-        ((1. / 2.) * 3.) / (1 * 3) * as_list_weights[0] + ((1. / 1.) * 6. +
-                                                           (2. / 2.) * 5.) /
-        (1 * 5 + 1 * 6) * as_list_weights[1]) / sum(as_list_weights)
+    expected_result = (((1.0 / 2.0) * 3.0) / (1 * 3) * as_list_weights[0] + (
+        ((1.0 * 6.0 + 1.0 * 5.0)) /
+        (1 * 5 + 1 * 6) * as_list_weights[1])) / sum(as_list_weights)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     # Per list weight.
@@ -1237,8 +1235,8 @@ class GetMetricsTest(tf.test.TestCase):
 
     metric_ = metrics_lib.get('mrr', name='metric')
     metric_.update_state(labels, scores)
-    expected_result = sum([1. / rel_rank[ind] for ind in range(num_queries)
-                          ]) / num_queries
+    expected_result = (sum(1.0 / rel_rank[ind]
+                           for ind in range(num_queries)) / num_queries)
     self.assertAlmostEqual(metric_.result().numpy(), expected_result, places=5)
 
     metric_ = metrics_lib.get('mrr', name='metric', topn=2)

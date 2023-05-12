@@ -396,7 +396,7 @@ class PrecisionMetricTest(tf.test.TestCase):
       output_top2, _ = metric_top2.compute(labels, scores, None)
       output_top6, _ = metric_top6.compute(labels, scores, None)
 
-      self.assertAllClose(output_top1, [[1. / 1.], [0. / 1.], [0. / 1.]])
+      self.assertAllClose(output_top1, [[1.0], [0. / 1.], [0. / 1.]])
       self.assertAllClose(output_top2, [[1. / 2.], [1. / 2.], [0. / 2.]])
       self.assertAllClose(output_top6, [[2. / 3.], [1. / 3.], [1. / 3.]])
 
@@ -505,8 +505,7 @@ class MeanAveragePrecisionMetricTest(tf.test.TestCase):
       metric = metrics_impl.MeanAveragePrecisionMetric(name=None, topn=None)
       output, _ = metric.compute(labels, scores, None)
 
-      self.assertAllClose(output, [[(1. / 2.) / 1.],
-                                   [(1. / 1. + 2. / 2.) / 2.]])
+      self.assertAllClose(output, [[(1. / 2.) / 1.], [(1.0 + 1.0) / 2.]])
 
   def test_map_should_handle_ragged_inputs(self):
     with tf.Graph().as_default():
@@ -517,8 +516,7 @@ class MeanAveragePrecisionMetricTest(tf.test.TestCase):
                                                        ragged=True)
       output, _ = metric.compute(labels, scores)
 
-      self.assertAllClose(output, [[(1. / 2.) / 1.],
-                                   [(1. / 1. + 2. / 3.) / 2.]])
+      self.assertAllClose(output, [[(1. / 2.) / 1.], [(1.0 + 2. / 3.) / 2.]])
 
   def test_map_should_handle_topn(self):
     with tf.Graph().as_default():
@@ -1019,7 +1017,7 @@ class OPAMetricTest(tf.test.TestCase):
       # The correctly ordered pairs are:
       # list 1: scores[1] > scores[2]
       # list 2: scores[0] > scores[1], scores[2] > scores[1]
-      self.assertAllClose(output, [[1. / 2.], [2. / 2.]])
+      self.assertAllClose(output, [[1. / 2.], [1.0]])
       self.assertAllClose(output_weights, [[2.], [2.]])
 
   def test_opa_should_weight_pairs_with_weights(self):
@@ -1416,8 +1414,7 @@ class BPrefMetricTest(tf.test.TestCase):
       metric = metrics_impl.BPrefMetric(name=None, topn=None)
       output, _ = metric.compute(labels, scores, None)
 
-      self.assertAllClose(output,
-                          [[1. / 2. * ((1. - 1. / 2.) + (1. - 2. / 2.))]])
+      self.assertAllClose(output, [[1. / 2. * (1. - 1. / 2. + 0.0)]])
 
   def test_bpref_should_convert_graded_relevance_to_binary(self):
     with tf.Graph().as_default():
@@ -1427,8 +1424,7 @@ class BPrefMetricTest(tf.test.TestCase):
       metric = metrics_impl.BPrefMetric(name=None, topn=None)
       output, _ = metric.compute(labels, scores, None)
 
-      self.assertAllClose(output,
-                          [[1. / 2. * ((1. - 1. / 2.) + (1. - 2. / 2.))]])
+      self.assertAllClose(output, [[1. / 2. * (1. - 1. / 2. + 0.0)]])
 
   def test_bpref_should_be_zero_when_only_irrelevant_items(self):
     with tf.Graph().as_default():
@@ -1533,8 +1529,7 @@ class BPrefMetricTest(tf.test.TestCase):
       metric = metrics_impl.BPrefMetric(name=None, topn=None)
       output, _ = metric.compute(labels, scores, None)
 
-      self.assertAllClose(output,
-                          [[1. / 2. * ((1. - 1. / 2.) + (1. - 2. / 2.))]])
+      self.assertAllClose(output, [[1. / 2. * (1. - 1. / 2. + 0.0)]])
 
   def test_bpref_should_handle_ragged_inputs(self):
     with tf.Graph().as_default():

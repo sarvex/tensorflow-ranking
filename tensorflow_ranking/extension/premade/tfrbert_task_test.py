@@ -59,7 +59,7 @@ def _create_fake_preprocessed_dataset(output_path, seq_length, label_type):
       elif label_type == tf.float32:
         features['relevance'] = create_float_feature([0.5])
       else:
-        raise ValueError('Unsupported label_type: %s' % label_type)
+        raise ValueError(f'Unsupported label_type: {label_type}')
 
       features['query_id'] = create_int_feature([query_id])
       features['document_id'] = create_int_feature([doc_id])
@@ -121,12 +121,12 @@ class ModelBuilderTest(tf.test.TestCase):
     dummy_mask = tf.ones((12, 10, 128))
     dummy_type_ids = tf.zeros((12, 10, 128))
     dummy_example_list_mask = tf.ones((12, 10), dtype=tf.bool)
-    x = dict(
+    return dict(
         input_word_ids=dummy_word_ids,
         input_mask=dummy_mask,
         input_type_ids=dummy_type_ids,
-        example_list_mask=dummy_example_list_mask)
-    return x
+        example_list_mask=dummy_example_list_mask,
+    )
 
   def test_tfr_bert_model_builder(self):
     encoder_config = encoders.EncoderConfig(
@@ -168,8 +168,7 @@ class TFRBertTaskTest(tf.test.TestCase):
         type='bert', bert=encoders.BertEncoderConfig(num_layers=1))
     encoder = encoders.build_encoder(config)
     ckpt = tf.train.Checkpoint(encoder=encoder)
-    ckpt_path = ckpt.save(os.path.join(self._logging_dir, 'ckpt'))
-    return ckpt_path
+    return ckpt.save(os.path.join(self._logging_dir, 'ckpt'))
 
   def test_task(self):
     # Prepare check point and test data

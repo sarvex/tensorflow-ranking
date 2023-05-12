@@ -143,8 +143,9 @@ def _create_feature_spec() -> Tuple[Dict[str, tf.io.FixedLenFeature], Dict[
   """
   context_feature_spec = {}
   example_feature_spec = {
-      "custom_features_{}".format(i + 1):
-      tf.io.FixedLenFeature(shape=(1,), dtype=tf.float32, default_value=0.0)
+      f"custom_features_{i + 1}": tf.io.FixedLenFeature(shape=(1, ),
+                                                        dtype=tf.float32,
+                                                        default_value=0.0)
       for i in range(0, FLAGS.num_features)
   }
   label_spec = (_LABEL_FEATURE,

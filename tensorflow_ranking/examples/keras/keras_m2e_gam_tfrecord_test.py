@@ -81,7 +81,7 @@ class KerasGAMTest(tf.test.TestCase, parameterized.TestCase):
     tf.compat.v1.reset_default_graph()
 
     # Prepares model directory, and train and eval data.
-    self._base_model_dir = tf.compat.v1.test.get_temp_dir() + "/model/"
+    self._base_model_dir = f"{tf.compat.v1.test.get_temp_dir()}/model/"
     tf.io.gfile.makedirs(self._base_model_dir)
     self._data_file = os.path.join(self._base_model_dir, "elwc.tfrecord")
     _write_tfrecord_files(self._data_file)

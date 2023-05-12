@@ -83,7 +83,7 @@ class TFRankingDASALCTest(tf.test.TestCase, parameterized.TestCase):
     tf.compat.v1.reset_default_graph()
 
     # Prepares model directory, and train and eval data.
-    self._base_model_dir = tf.compat.v1.test.get_temp_dir() + "/model/"
+    self._base_model_dir = f"{tf.compat.v1.test.get_temp_dir()}/model/"
     tf.io.gfile.makedirs(self._base_model_dir)
     self._data_file = os.path.join(self._base_model_dir, "elwc.tfrecord")
     _write_tfrecord_files(self._data_file)
@@ -95,7 +95,7 @@ class TFRankingDASALCTest(tf.test.TestCase, parameterized.TestCase):
     self._base_model_dir = None
 
   def test_train_and_eval(self):
-    self._model_dir = self._base_model_dir + "/" + "dasalc"
+    self._model_dir = f"{self._base_model_dir}/dasalc"
     with flagsaver.flagsaver(
         train_input_pattern=self._data_file,
         eval_input_pattern=self._data_file,

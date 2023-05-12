@@ -47,7 +47,7 @@ def _get_params(mode, params):
   elif mode == tf.estimator.ModeKeys.PREDICT:
     num_shuffles = params.get(_NUM_SHUFFLES_PREDICT, None)
   else:
-    raise ValueError('Invalid mode: {}.'.format(mode))
+    raise ValueError(f'Invalid mode: {mode}.')
   return num_shuffles
 
 
@@ -123,20 +123,16 @@ class _RankingModel(object):
         if (tensor_shape is not None and tensor_shape.rank is not None and
             tensor_shape.rank < 3):
           tf.compat.v1.logging.warning(
-              'Feature \"{}\" has invalid feature tensor shape {}. '
-              'Expected shape has at least 3 dims: '
-              '(batch_size, list_size, feature_size).'.format(
-                  name, tensor_shape))
+              f'Feature \"{name}\" has invalid feature tensor shape {tensor_shape}. Expected shape has at least 3 dims: (batch_size, list_size, feature_size).'
+          )
 
     logits = self._compute_logits_impl(context_features, example_features,
                                        labels, mode, params, config)
 
-    if mode == tf.estimator.ModeKeys.PREDICT:
-      return logits
-    else:
+    if mode != tf.estimator.ModeKeys.PREDICT:
       features.update(context_features)
       features.update(example_features)
-      return logits
+    return logits
 
   @abc.abstractmethod
   def _compute_logits_impl(self, context_features, example_features, labels,
@@ -264,8 +260,7 @@ def _infer_sizes(example_features, labels):
       # TODO: Be more smart to infer is_valid.
       is_valid = utils.is_label_valid(tf.ones([batch_size, list_size]))
   if batch_size is None or list_size is None:
-    raise ValueError('Invalid batch_size=%s or list_size=%s' %
-                     (batch_size, list_size))
+    raise ValueError(f'Invalid batch_size={batch_size} or list_size={list_size}')
   return batch_size, list_size, is_valid
 
 
@@ -322,16 +317,15 @@ class _GroupwiseRankingModel(_RankingModel):
 
     # Shuffle the indices the `num_shuffles` times and concat shuffled indices.
     num_shuffles = num_shuffles or 1
-    assert num_shuffles > 0, 'Invalid num_shuffles: {}'.format(num_shuffles)
+    assert num_shuffles > 0, f'Invalid num_shuffles: {num_shuffles}'
     if shuffle:
-      tf.compat.v1.logging.info('Number of shuffles: {}'.format(num_shuffles))
-    indices_shuffled = []
-    # Use fixed ops-level seeds so that the randomness is controlled by the
-    # graph-level seed.
-    for i in range(num_shuffles):
-      indices_shuffled.append(
-          _form_group_indices_nd(
-              is_valid, self._group_size, shuffle=shuffle, seed=i + 77))
+      tf.compat.v1.logging.info(f'Number of shuffles: {num_shuffles}')
+    indices_shuffled = [
+        _form_group_indices_nd(is_valid,
+                               self._group_size,
+                               shuffle=shuffle,
+                               seed=i + 77) for i in range(num_shuffles)
+    ]
     feature_gather_indices_list, indices_mask_list = zip(*indices_shuffled)
     self._feature_gather_indices = tf.concat(feature_gather_indices_list, 1)
     self._indices_mask = tf.concat(indices_mask_list, 1)
@@ -399,7 +393,7 @@ class _GroupwiseRankingModel(_RankingModel):
           """A subroutine to accumulate scores for a single Tensor."""
           task_scores = tf.reshape(
               task_scores,
-              tf.shape(input=self._score_scatter_indices)[0:3])
+              tf.shape(input=self._score_scatter_indices)[:3])
           task_scores = tf.compat.v1.where(scores_mask, task_scores,
                                            tf.zeros_like(task_scores))
           # Scatter scores from [batch_size, num_groups, group_size] to

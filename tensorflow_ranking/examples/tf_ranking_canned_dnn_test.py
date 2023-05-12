@@ -83,7 +83,7 @@ class TFRankingCannedDNNTest(tf.test.TestCase, parameterized.TestCase):
     tf.compat.v1.reset_default_graph()
 
     # Prepares model directory, and train and eval data.
-    self._base_model_dir = tf.compat.v1.test.get_temp_dir() + "/model/"
+    self._base_model_dir = f"{tf.compat.v1.test.get_temp_dir()}/model/"
     tf.io.gfile.makedirs(self._base_model_dir)
     self._data_file = os.path.join(self._base_model_dir, "elwc.tfrecord")
     _write_tfrecord_files(self._data_file)
@@ -97,7 +97,7 @@ class TFRankingCannedDNNTest(tf.test.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(("enable_listwise_inference", True),
                                   ("disable_listwise_inference", False))
   def test_train_and_eval(self, listwise_inference):
-    self._model_dir = self._base_model_dir + "/" + str(listwise_inference)
+    self._model_dir = f"{self._base_model_dir}/{str(listwise_inference)}"
     with flagsaver.flagsaver(
         train_input_pattern=self._data_file,
         eval_input_pattern=self._data_file,
